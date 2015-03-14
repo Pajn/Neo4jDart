@@ -3,6 +3,12 @@
 # Fast fail the script on failures.
 set -e
 
+# Download and start Neo4j
+wget dist.neo4j.org/neo4j-community-$NEO_VERSION-unix.tar.gz
+tar -xzf neo4j-community-$NEO_VERSION-unix.tar.gz
+neo4j-community-$NEO_VERSION/bin/neo4j start
+
+
 # Run the tests.
 dart --checked test/runner.dart
 

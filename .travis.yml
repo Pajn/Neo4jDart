@@ -1,9 +1,10 @@
 language: dart
+
 dart:
   - dev
   - stable
 
-services:
-  - neo4j
+env:
+- NEO_VERSION="2.1.7"
 
 script: ./tool/travis.sh
