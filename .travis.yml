@@ -1,0 +1,9 @@
+language: dart
+dart:
+  - dev
+  - stable
+
+services:
+  - neo4j
+
+script: ./tool/travis.sh
