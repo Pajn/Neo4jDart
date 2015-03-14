@@ -64,5 +64,11 @@ main() {
         }
       }]);
     });
+
+    it('should throw on errors', () =>
+      db.cypher('(dart:Language {name:"Dart"})')
+        .catchError(expectAsync((result) {
+          expect(result['errors'][0]['code']).toEqual('Neo.ClientError.Schema.ConstraintViolation');
+        })));
   });
 }

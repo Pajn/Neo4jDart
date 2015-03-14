@@ -20,6 +20,12 @@ class Neo4j {
       body: body
     )
       .then((response) => response.body)
-      .then(JSON.decode);
+      .then(JSON.decode)
+      .then((result) {
+        if (result['errors'].isNotEmpty) {
+          throw result;
+        }
+        return result;
+      });
   }
 }

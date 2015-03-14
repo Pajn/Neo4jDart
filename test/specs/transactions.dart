@@ -33,13 +33,13 @@ main() {
       var query = db.cypherTransaction([
           new Statement('Create (:Language {name: "Scala"})'),
           new Statement('Create (:Language {name: "Scala"})'),
-      ]);
-
-      return query.then(expectAsync((result) {
+      ]).catchError(expectAsync((result) {
         expect(result['errors'][0]['code']).toEqual('Neo.ClientError.Schema.ConstraintViolation');
-      }))
-        .then((_) =>
-          expect(query).not.toHaveWritten('(a:Language {name: "Scala"})'));
+      }));
+
+      return query.then((_) {
+        expect(query).not.toHaveWritten('(a:Language {name: "Scala"})');
+      });
     });
   });
 }
