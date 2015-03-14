@@ -5,6 +5,8 @@ import 'api.dart';
 setUpTestData() =>
   cypherQuery('Match (n) Optional Match (n)-[r]->() Delete n, r')
     .then((_) =>
+      cypherQuery('CREATE CONSTRAINT ON (language:Language) ASSERT language.name IS UNIQUE'))
+    .then((_) =>
       cypherQuery('''
         Create (:Language {name:"Dart"}),
                (:Database {name:"Neo4j"}),

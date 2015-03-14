@@ -24,9 +24,9 @@ main() {
         Return js
       ''', {'js': {'name': 'JavaScript'}});
 
-      return expect(query).toReturnNodes({
+      return expect(query).toReturnNodes([{
         'js': { 'data': [{'name': 'JavaScript'}]}
-      })
+      }])
       .then((_) =>
         expect(query).toHaveWritten('(a:Language {name: "JavaScript"})')
       );
@@ -51,7 +51,7 @@ main() {
     it('should be able to query the database for a node result', () {
       var query = db.cypher('Match (m:Movie) Return m');
 
-      return expect(query).toReturnNodes({
+      return expect(query).toReturnNodes([{
         'm': {
           'data': [
             {'name':'Fury', 'year':2014},
@@ -62,7 +62,7 @@ main() {
             {'name':'Bad Boys 3'},
           ]
         }
-      });
+      }]);
     });
   });
 }

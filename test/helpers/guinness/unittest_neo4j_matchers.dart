@@ -9,7 +9,7 @@ class UnitTestMatchersWithNe4j extends gns.UnitTestMatchers implements Neo4jMatc
       .then(unit.expectAsync((_) => cypherQuery('Match $expected Return $variables')))
       .then(unit.expectAsync((actual) {
         unit.expect(actual['errors'], unit.isEmpty);
-        unit.expect(actual['results'], unit.isNot(unit.isEmpty));
+        unit.expect(actual['results'][0]['data'], unit.isNot(unit.isEmpty));
       }));
   }
 
@@ -20,7 +20,7 @@ class UnitTestMatchersWithNe4j extends gns.UnitTestMatchers implements Neo4jMatc
       .then(unit.expectAsync((_) => cypherQuery('Match $expected Return $variables')))
       .then(unit.expectAsync((actual) {
         unit.expect(actual['errors'], unit.isEmpty);
-        unit.expect(actual['results'], unit.isEmpty);
+        unit.expect(actual['results'][0]['data'], unit.isEmpty);
       }));
   }
 
@@ -36,28 +36,31 @@ class UnitTestMatchersWithNe4j extends gns.UnitTestMatchers implements Neo4jMatc
       }));
     }));
 
-  Future toReturnNodes(query, Map<String, Map> expected) =>
+  Future toReturnNodes(query, List<Map<String, Map>> expected) =>
     query.then((actual) {
       unit.expect(actual['errors'], unit.isEmpty);
-      actual = actual['results'][0];
-      (actual['data'] as List).sort(_sortNodeResult);
-      expected.values.forEach((value) {
-        value['data'].sort((a, b) => a[a.keys.first].compareTo(b[a.keys.first]));
-      });
-      unit.expect((actual['columns'] as List).toList()..sort(),
-      unit.equals(expected.keys.toList()..sort()));
 
-      List<String> columns = actual['columns'];
-      for (var i = 0; i < columns.length; i++) {
-        var column = columns[i];
+      expected.asMap().forEach((index, expected) {
+        var result = actual['results'][index];
+        (result['data'] as List).sort(_sortNodeResult);
+        expected.values.forEach((value) {
+          value['data'].sort((a, b) => a[a.keys.first].compareTo(b[a.keys.first]));
+        });
+        unit.expect((result['columns'] as List).toList()..sort(),
+        unit.equals(expected.keys.toList()..sort()));
 
-        if (expected[column].containsKey('data')) {
-          for (var row = 0; row < expected[column]['data'].length; row++) {
-            unit.expect(expected[column]['data'][row],
-            unit.equals(actual['data'][row]['row'][i]));
+        List<String> columns = result['columns'];
+        for (var i = 0; i < columns.length; i++) {
+          var column = columns[i];
+
+          if (expected[column].containsKey('data')) {
+            for (var row = 0; row < expected[column]['data'].length; row++) {
+              unit.expect(expected[column]['data'][row],
+              unit.equals(result['data'][row]['row'][i]));
+            }
           }
         }
-      }
+      });
 
       return actual;
     });

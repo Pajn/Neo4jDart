@@ -2,6 +2,7 @@ import 'package:neo4j_dart/neo4j_dart.dart';
 import 'helpers/guinness.dart';
 
 export 'package:neo4j_dart/neo4j_dart.dart';
+export 'package:unittest/unittest.dart' show expectAsync;
 export 'helpers/guinness.dart';
 export 'helpers/testdata.dart';
 
