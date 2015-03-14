@@ -3,7 +3,7 @@ part of guinness_neo4j;
 class UnitTestMatchersWithNe4j extends gns.UnitTestMatchers implements Neo4jMatchers {
 
   Future toHaveWritten(query, expected) {
-    var variables = getVariables(expected).join(', ');
+    var variables = new Set.from(getVariables(expected)).join(', ');
 
     return query
       .then(unit.expectAsync((_) => cypherQuery('Match $expected Return $variables')))
