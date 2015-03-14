@@ -18,6 +18,20 @@ main() {
       );
     });
 
+    it('should support parameterized queries', () {
+      var query = db.cypher('''
+        Create (js:Language {js})
+        Return js
+      ''', {'js': {'name': 'JavaScript'}});
+
+      return expect(query).toReturnNodes({
+        'js': { 'data': [{'name': 'JavaScript'}]}
+      })
+      .then((_) =>
+        expect(query).toHaveWritten('(a:Language {name: "JavaScript"})')
+      );
+    });
+
     it('should be able to query the database for a table result', () {
       var query = db.cypher('Match (m:Movie) Return m.name, m.year');
 

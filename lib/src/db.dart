@@ -5,10 +5,20 @@ class Neo4j {
 
   Neo4j([this.host = 'http://127.0.0.1:7474']);
 
-  Future<Map<String, List>> cypher(String query) =>
-    http.post('$host/db/data/cypher', body: JSON.encode({
-      'query': query
-    }))
-    .then((response) => response.body)
-    .then(JSON.decode);
+  Future<Map<String, List>> cypher(String query, [Map<String, dynamic> parameters]) {
+    var statement = { 'statement': query };
+    if (parameters != null) {
+      statement['parameters'] = parameters;
+    }
+
+    return http.post('$host/db/data/transaction/commit', headers: {
+        'Accept': 'application/json; charset=UTF-8',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.encode({
+        'statements' : [statement]
+      }))
+        .then((response) => response.body)
+        .then(JSON.decode);
+  }
 }
