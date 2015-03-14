@@ -5,6 +5,7 @@ main() {
 
   describe('cypher', () {
     beforeEach(setUpTestData);
+    afterEach(cleanUpTestData);
 
     it('should be able to write to the database', () {
       var query = db.cypher('''
@@ -66,7 +67,7 @@ main() {
     });
 
     it('should throw on errors', () =>
-      db.cypher('(dart:Language {name:"Dart"})')
+      db.cypher('Create (dart:Language {name:"Dart"})')
         .catchError(expectAsync((result) {
           expect(result['errors'][0]['code']).toEqual('Neo.ClientError.Schema.ConstraintViolation');
         })));

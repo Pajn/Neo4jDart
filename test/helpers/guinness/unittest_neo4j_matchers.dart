@@ -26,8 +26,11 @@ class UnitTestMatchersWithNe4j extends gns.UnitTestMatchers implements Neo4jMatc
 
   Future toReturnTable(query, columns, List<List> rows) =>
     query.then(unit.expectAsync((actual) {
-      unit.expect(actual['errors'], unit.isEmpty);
-      actual = actual['results'][0];
+      if (actual is List) {
+        actual = actual[0];
+      } else {
+        actual = actual;
+      }
       rows.sort((a, b) => a[0].compareTo(b[0]));
       actual['data'].sort((a, b) => a['row'][0].compareTo(b['row'][0]));
       unit.expect(actual, unit.equals({
@@ -38,10 +41,13 @@ class UnitTestMatchersWithNe4j extends gns.UnitTestMatchers implements Neo4jMatc
 
   Future toReturnNodes(query, List<Map<String, Map>> expected) =>
     query.then((actual) {
-      unit.expect(actual['errors'], unit.isEmpty);
-
       expected.asMap().forEach((index, expected) {
-        var result = actual['results'][index];
+        var result;
+        if (actual is List) {
+          result = actual[index];
+        } else {
+          result = actual;
+        }
         (result['data'] as List).sort(_sortNodeResult);
         expected.values.forEach((value) {
           value['data'].sort((a, b) => a[a.keys.first].compareTo(b[a.keys.first]));

@@ -5,6 +5,7 @@ main() {
 
   describe('transactions', () {
     beforeEach(setUpTestData);
+    afterEach(cleanUpTestData);
 
     it('should be able to write to the database', () {
       var query = db.cypherTransaction([

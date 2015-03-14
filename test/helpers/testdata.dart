@@ -3,7 +3,7 @@ library testdata;
 import 'api.dart';
 
 setUpTestData() =>
-  cypherQuery('Match (n) Optional Match (n)-[r]->() Delete n, r')
+  cleanUpTestData()
     .then((_) =>
       cypherQuery('CREATE CONSTRAINT ON (language:Language) ASSERT language.name IS UNIQUE'))
     .then((_) =>
@@ -20,3 +20,8 @@ setUpTestData() =>
                  <-[:predecessor]-
                (:Movie {name:"Bad Boys 3"})
       '''));
+
+cleanUpTestData() =>
+  cypherQuery('Match (n) Optional Match (n)-[r]->() Delete n, r')
+  .then((_) =>
+    cypherQuery('DROP CONSTRAINT ON (language:Language) ASSERT language.name IS UNIQUE'));
