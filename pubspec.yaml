@@ -1,0 +1,10 @@
+name: neo4j_dart
+description: >
+  A library useful for applications or for sharing on pub.dartlang.org.
+version: 0.0.1
+author: Rasmus Eneman <rasmus@eneman.eu>
+#homepage: https://www.example.com
+dependencies:
+  http: any
+dev_dependencies:
+  guinness: any
