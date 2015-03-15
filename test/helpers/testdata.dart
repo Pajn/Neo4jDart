@@ -24,7 +24,10 @@ setUpTestData() =>
 
                (ws:Actor {name:"Will Smith"})-[:actedIn {role: "Mike Lowrey"}]->(bb),
                                          (ws)-[:actedIn {role: "Mike Lowrey"}]->(bb2),
-                                         (ws)-[:actedIn {role: "Mike Lowrey"}]->(bb3)
+                                         (ws)-[:actedIn {role: "Mike Lowrey"}]->(bb3),
+
+               (:SpecialCases {method: "Value on method", private: 5, defaultValue: "changed",
+                               integer: "String", gettersAndSetters: 5, setter: 'set'})
       '''));
 
 cleanUpTestData() =>

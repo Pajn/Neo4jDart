@@ -31,6 +31,28 @@ class Actor extends Person {
   ActedIn actedIn;
 }
 
+class SpecialCases {
+  Map id;
+
+  int _private = 10;
+  int get private => _private;
+
+  int _gettersAndSetter = 10;
+  get gettersAndSetters => _gettersAndSetter;
+  set gettersAndSetters(value) => _gettersAndSetter = value - 1;
+
+  int integer;
+
+  var defaultValue = 'default';
+
+  var withSetter;
+  set setter(value) => withSetter = value;
+
+  method() {
+    throw 'Should not be called';
+  }
+}
+
 class ActedIn extends Edge<Actor, Movie> {
   String role;
 }

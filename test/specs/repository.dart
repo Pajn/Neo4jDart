@@ -9,12 +9,14 @@ main() {
   describe('repository', () {
     Repository<Actor> actorRepository;
     MovieRepository movieRepository;
+    Repository<SpecialCases> specialsRepository;
     Actor owen;
     Movie avatar, badBoys, cars, cars2, fury, theGreenMile, up;
 
     beforeEach(() async {
       actorRepository = new Repository<Actor>(db);
       movieRepository = new MovieRepository(db);
+      specialsRepository = new Repository<SpecialCases>(db);
 
       cars = new Movie()
         ..name = 'Cars'
@@ -234,6 +236,55 @@ main() {
 
         expect(recentMovies).toEqual(['Avatar', 'Fury']);
       });
+    });
+
+    it('should ignore values that have the same name as a method', () async {
+      var entity = await specialsRepository.find('method', 'Value on method');
+
+      expect(entity.method).toBeA(Function);
+    });
+
+    it('should ignore values that are private and only have a public getter', () async {
+      var entity = await specialsRepository.find('private', 5);
+
+      expect(entity.private).toEqual(10);
+    });
+
+    it('should overwrite default values', () async {
+      var entity = await specialsRepository.find('defaultValue', 'changed');
+
+      expect(entity.defaultValue).toEqual('changed');
+    });
+
+    it('should be able to set private values that have a getter and a setter', () async {
+      var entity = await specialsRepository.find('gettersAndSetters', 5);
+
+      expect(entity.gettersAndSetters).toEqual(4);
+    });
+
+    it('should ignore properties of wrong type', () async {
+      var entity = await specialsRepository.find('integer', 'String');
+
+      expect(entity.id).toBeNull();
+      expect(entity.integer).toBeNull();
+    });
+
+    it('should be able to set via a setter', () async {
+      var entity = await specialsRepository.find('setter', 'set');
+
+      expect(entity.withSetter).toEqual('set');
+    });
+
+    it('should be able to save via a getter', () {
+      var entity = new SpecialCases()
+        ..gettersAndSetters = 15;
+
+      specialsRepository.store(entity);
+
+      var query = specialsRepository.saveChanges();
+      return expect(query).toHaveWritten(
+          '(a:SpecialCases {gettersAndSetters: 14, private: 10, defaultValue: "default"})'
+      );
     });
   });
 }
