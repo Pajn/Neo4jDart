@@ -17,7 +17,7 @@ function stopDatabase {
 trap stopDatabase EXIT
 
 # Run the tests.
-dart --checked test/runner.dart
+dart --checked --enable-async test/runner.dart
 
 # If the COVERALLS_TOKEN token is set on travis
 # Install dart_coveralls
