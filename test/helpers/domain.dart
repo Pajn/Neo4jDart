@@ -23,9 +23,11 @@ class Movie {
   ActedIn cast;
 }
 
-class Actor {
+class Person {
   String name;
+}
 
+class Actor extends Person {
   ActedIn actedIn;
 }
 

@@ -18,7 +18,7 @@ setUpTestData() =>
 
                (bb:Movie {name:"Bad Boys", year:1995})
                  <-[:predecessor]-
-               (bb2:Movie {name:"Bad Boys II", year:2003})
+               (bb2:Movie {name:"Bad Boys II", year:2003, someMethod: "test"})
                  <-[:predecessor]-
                (bb3:Movie {name:"Bad Boys 3"}),
 

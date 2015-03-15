@@ -9,6 +9,7 @@ main() {
   describe('repository', () {
     Repository<Actor> actorRepository;
     MovieRepository movieRepository;
+    Actor owen;
     Movie avatar, badBoys, cars, cars2, fury, theGreenMile, up;
 
     beforeEach(() async {
@@ -25,6 +26,8 @@ main() {
       up = new Movie()
         ..name = 'Up'
         ..year = 2009;
+      owen = new Actor()
+        ..name = 'Owen Wilson';
 
       await setUpTestData();
 
@@ -50,6 +53,13 @@ main() {
         (a:Movie {name:"Cars", year:2006}),
         (b:Movie {name:"Up", year:2009})
       ''');
+    });
+
+    it('should be able to create a node with inherited properties', () {
+      actorRepository.store(owen);
+
+      var query = actorRepository.saveChanges();
+      return expect(query).toHaveWritten('(a:Actor {name:"Owen Wilson"})');
     });
 
     it('should be able to create multiple nodes with relations', () {
