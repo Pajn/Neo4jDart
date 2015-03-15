@@ -8,4 +8,9 @@ env:
 - NEO_VERSION="2.1.6"
 - NEO_VERSION="2.1.7"
 
+cache:
+  directories:
+  - neo4j-community-2.1.6
+  - neo4j-community-2.1.7
+
 script: ./tool/travis.sh
