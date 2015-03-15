@@ -7,6 +7,7 @@ class Repository<T> {
   final List<T> _toCreate = [];
   final Map<int, Map> _toUpdate = {};
   final List<int> _toDelete = [];
+  final List<int> _toDeleteWithRelations = [];
   final List<Edge> _edgesToCreate = [];
   final Map<int, Map> _edgesToUpdate = {};
   final List<int> _edgesToDelete = [];
@@ -19,11 +20,11 @@ class Repository<T> {
     db.cypher(query, parameters, resultDataContents)
       .then(_instantiate(_t));
 
-  Future<T> find(property, value) =>
-    findAll(property: property, equals: value, limit: 1)
+  Future<T> find(property, value, {int maxDepth: 1}) =>
+    findAll(property: property, equals: value, limit: 1, maxDepth: maxDepth)
       .then((result) => result.isEmpty ? null : result.first);
 
-  Future<List<T>> findAll({String property, equals, int limit, int skip: 0}) {
+  Future<List<T>> findAll({String property, equals, int limit, int skip: 0, int maxDepth: 0}) {
     var filterQuery = '';
     if (property != null && equals != null) {
       filterQuery = 'Where n.$property = {value}';
@@ -36,8 +37,7 @@ class Repository<T> {
     var query = '''
       Match (n:$label)
       $filterQuery
-      Optional Match (n)-[r]-(:$label)
-      Return id(n), n, r
+      Return id(n), (n)-[*0..$maxDepth]-()
       $skipQuery $limitQuery
     ''';
 
@@ -46,14 +46,18 @@ class Repository<T> {
 
   Future<T> get(int id, {int maxDepth: 1}) =>
     cypher('''
-      Match p=(n:$label)-[*0..$maxDepth]-()
+      Match (n:$label)
       Where id(n) = {id}
-      Return {id}, p
+      Return {id}, (n)-[*0..$maxDepth]-()
     ''', {'id': id}, ['graph', 'row'])
       .then((result) => result.isEmpty ? null : result.first);
 
-  void delete(T entity) {
-    _toDelete.add(entityId(entity));
+  void delete(T entity, {bool deleteRelations: false}) {
+    if (deleteRelations) {
+      _toDeleteWithRelations.add(entityId(entity));
+    } else {
+      _toDelete.add(entityId(entity));
+    }
   }
 
   void store(T entity) {
@@ -62,6 +66,8 @@ class Repository<T> {
     } else {
       _toUpdate[entityId(entity)] = _getProperties(_t, entity);
     }
+
+    _edgesToDelete.addAll(_removedRelations(entity));
 
     var edges = _getEdges(_t, entity).where((e) => entityId(e.end) != null || _toCreate.contains(e.end));
     for (var edge in edges) {
@@ -87,8 +93,23 @@ class Repository<T> {
           'id': id,
       })));
 
+    _edgesToDelete.forEach((id) =>
+      transaction.add(new Statement('Match ()-[r]->() Where id(r) = {id} Delete r', {
+          'id': id,
+      })));
+
     _toDelete.forEach((id) =>
       transaction.add(new Statement('Match (n:$label) Where id(n) = {id} Delete n', {
+          'id': id,
+      })));
+
+    _toDeleteWithRelations.forEach((id) =>
+      transaction.add(new Statement('''
+        Match (n:$label)
+        Where id(n) = {id}
+        Optional Match (n)-[r]-()
+        Delete n, r
+      ''', {
           'id': id,
       })));
 

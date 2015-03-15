@@ -18,6 +18,7 @@ class NotExpect extends gns.NotExpect {
   NotExpect(actual) : super(actual);
 
   Future toHaveWritten(expected) => _m.toHaveDeleted(actual, expected);
+  Future toHaveDeleted(expected) => _m.toHaveWritten(actual, expected);
 
   Neo4jMatchers get _m => gns.guinness.matchers;
 }

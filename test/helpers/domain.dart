@@ -14,6 +14,7 @@ class Movie {
   int year;
 
   Movie predecessor;
+  Role centralCharacter;
 
   @ReverseOf(#predecessor)
   Movie sequel;
@@ -29,5 +30,9 @@ class Actor {
 }
 
 class ActedIn extends Edge<Actor, Movie> {
+  String role;
+}
+
+class Role extends Edge<Movie, Actor> {
   String role;
 }

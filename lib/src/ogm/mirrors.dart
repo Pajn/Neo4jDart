@@ -2,6 +2,7 @@ part of neo4j_dart.ogm;
 
 const defaultConstructor = const Symbol('');
 final _objects = new Expando();
+final _hasRelation = new Expando();
 
 final _Edge = reflectType(Edge);
 final _String = reflectType(String);
@@ -40,6 +41,18 @@ bool _hasEdgeObject(ClassMirror cm, Symbol field) {
   return cm.declarations[field].type.isAssignableTo(_Edge);
 }
 
+Object _findOtherObject(Map objects, Map properties, Object start, Symbol field, Symbol edgeField,
+                        int otherId) {
+  var otherClass;
+  if (_hasEdgeObject(start.type, field)) {
+    otherClass = start.type.declarations[field].type.superclass.declarations[edgeField].type;
+  } else {
+    otherClass = start.type.declarations[field].type;
+  }
+  _instantiateObject(objects, otherClass, properties, otherId);
+  return objects[otherId];
+}
+
 _instantiateGraph(Map<int, InstanceMirror> objects, ClassMirror cm, Map<String, Map<String, List<Map>>> graph) {
   var notInstantiated = {};
 
@@ -56,39 +69,61 @@ _instantiateGraph(Map<int, InstanceMirror> objects, ClassMirror cm, Map<String, 
 
   for (Map relation in graph['relationships']) {
     var startId = int.parse(relation['startNode']);
+    var edgeId = int.parse(relation['id']);
     var endId = int.parse(relation['endNode']);
     var start = objects[startId];
     var end = objects[endId];
 
     var startFieldName = new Symbol(relation['type']);
-    var endFieldName = end.type.declarations.values.firstWhere((dm) =>
-      dm.metadata.any((annotation) =>
-        annotation.type.simpleName == #ReverseOf &&
-        annotation.reflectee.field == startFieldName
+
+    if (end == null) {
+      end = _findOtherObject(objects, notInstantiated[endId], start, startFieldName, #end, endId);
+    }
+
+    var endFieldName;
+    try {
+      endFieldName = end.type.declarations.values.firstWhere((dm) =>
+        dm.metadata.any((annotation) =>
+          annotation.type.simpleName == #ReverseOf &&
+          annotation.reflectee.field == startFieldName
       )).simpleName;
 
-    if (start == null) {
-      var startClass;
-      if (_hasEdgeObject(end.type, endFieldName)) {
-        startClass = end.type.declarations[endFieldName].type.superclass.declarations[#start].type;
-      } else {
-        startClass = end.type.declarations[endFieldName].type;
+      if (start == null) {
+        start = _findOtherObject(
+            objects, notInstantiated[startId], end, endFieldName, #start, startId
+        );
       }
-      _instantiateObject(objects, startClass, notInstantiated[startId], startId);
-      start = objects[startId];
+    } on StateError catch(e) {}
+
+    if (_hasRelation[start.reflectee] == null) {
+      _hasRelation[start.reflectee] = [{#field: startFieldName, #id: edgeId}];
+    } else {
+      _hasRelation[start.reflectee].add({#field: startFieldName, #id: edgeId});
     }
 
     if (_hasEdgeObject(start.type, startFieldName)) {
-      var edgeId = int.parse(relation['id']);
-      _instantiateObject(objects, end.type.declarations[endFieldName].type, relation['properties'], edgeId);
+      _instantiateObject(
+          objects, start.type.declarations[startFieldName].type, relation['properties'], edgeId
+      );
+
       var edge = objects[edgeId];
       start.setField(startFieldName, edge.reflectee);
       edge.setField(#start, start.reflectee);
       edge.setField(#end, end.reflectee);
-      end.setField(endFieldName, edge.reflectee);
+
+      start = edge;
     } else {
       start.setField(startFieldName, end.reflectee);
+    }
+
+    if (endFieldName != null) {
       end.setField(endFieldName, start.reflectee);
+
+      if (_hasRelation[end.reflectee] == null) {
+        _hasRelation[end.reflectee] = [{#field: endFieldName, #id: edgeId}];
+      } else {
+        _hasRelation[end.reflectee].add({#field: endFieldName, #id: edgeId});
+      }
     }
   }
 }
@@ -172,6 +207,17 @@ Iterable<Edge> _getEdges(ClassMirror cm, object) {
     ));
 
   return edges;
+}
+
+Iterable<int> _removedRelations(Object object) {
+  if (_hasRelation[object] == null) {
+    return const [];
+  }
+  var im = reflect(object);
+
+  return _hasRelation[object]
+    .where((relation) => im.getField(relation[#field]).reflectee == null)
+    .map((relation) => relation[#id]);
 }
 
 _setId(Object object, int id, [ClassMirror cm]) {

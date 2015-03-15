@@ -87,10 +87,10 @@ main() {
     });
 
     it('should be able to delete a node', () {
-        movieRepository.delete(avatar);
+        movieRepository.delete(fury);
 
         var query = movieRepository.saveChanges();
-        return expect(query).toHaveDeleted('(a:Movie {name:"Avatar", year:2009})');
+        return expect(query).toHaveDeleted('(a:Movie {name:"Fury", year:2014})');
     });
 
     it('should be able to delete multiple nodes', () {
@@ -104,10 +104,52 @@ main() {
       ''');
     });
 
+    it('should not be able to delete a node with relations', () {
+      movieRepository.delete(avatar);
+
+      var query = movieRepository.saveChanges().catchError(expectAsync((error) {
+        expect(error['errors'][0]['code']).toEqual('Neo.DatabaseError.Transaction.CouldNotCommit');
+        expect(error['errors'][0]['message']).toContain('still has relationships');
+      }));
+
+      return expect(query).not.toHaveDeleted('(a:Movie {name:"Avatar", year:2009})');
+    });
+
+    it('should be able to delete a node with relations forcefully', () {
+      movieRepository.delete(avatar, deleteRelations: true);
+
+      var query = movieRepository.saveChanges();
+      return expect(query).toHaveDeleted('(a:Movie {name:"Avatar", year:2009})');
+    });
+
+    it('should not be able to delete a node by first removing the relations', () async {
+      avatar.centralCharacter = null;
+      movieRepository.store(avatar);
+      movieRepository.delete(avatar);
+      await movieRepository.saveChanges();
+
+      movieRepository.delete(avatar);
+
+      var query = movieRepository.saveChanges();
+      return expect(query).toHaveDeleted('(a:Movie {name:"Avatar", year:2009})');
+    });
+
     describe('get', () {
       it('should get a node', () async {
+        var f = await movieRepository.get(fury.id);
+
+        expect(f).toHaveSameProps(fury);
+      });
+
+      it('should handle relations without a reverse field', () async {
         var a = await movieRepository.get(avatar.id);
-        expect(a).toHaveSameProps(avatar);
+
+        expect(a.name).toEqual('Avatar');
+        expect(a.centralCharacter.role).toEqual('Jake Sully');
+        expect(a.centralCharacter.end.name).toEqual('Sam Worthington');
+        expect(a.centralCharacter.start).toBe(a);
+        expect(a.centralCharacter.end).toBeA(Actor);
+        expect(a.centralCharacter).toBeA(Role);
       });
 
       it('should be able to create referenses to related nodes', () async {
@@ -161,7 +203,7 @@ main() {
       });
 
       it('should create referenses to related nodes', () async {
-        var allMovies = await movieRepository.findAll();
+        var allMovies = await movieRepository.findAll(maxDepth: 1);
         var badBoys = allMovies.singleWhere((movie) => movie.name == 'Bad Boys');
         var badBoys2 = allMovies.singleWhere((movie) => movie.name == 'Bad Boys II');
         var badBoys3 = allMovies.singleWhere((movie) => movie.name == 'Bad Boys 3');

@@ -12,7 +12,9 @@ setUpTestData() =>
                (:Database {name:"Neo4j"}),
                (:Movie {name:"Fury", year:2014}),
                (:Movie {name:"The Green Mile", year:1999}),
-               (:Movie {name:"Avatar", year:2009}),
+               (:Movie {name:"Avatar", year:2009})
+                 -[:centralCharacter {role: "Jake Sully"}]->
+               (:Actor {name: "Sam Worthington"}),
 
                (bb:Movie {name:"Bad Boys", year:1995})
                  <-[:predecessor]-
