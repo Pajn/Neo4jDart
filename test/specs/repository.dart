@@ -6,7 +6,7 @@ import '../helpers/domain.dart';
 main() {
   var db = setUp();
 
-  describe('Repository', () {
+  describe('repository', () {
     Repository<Actor> actorRepository;
     MovieRepository movieRepository;
     Movie avatar, badBoys, cars, cars2, fury, theGreenMile, up;
@@ -121,11 +121,23 @@ main() {
             expect(badBoys.year).toEqual(1995);
             expect(badBoys.sequel.name).toEqual('Bad Boys II');
             expect(badBoys.sequel.year).toEqual(2003);
-//            expect(badBoys.sequel.sequel.name).toEqual('Bad Boys 3');
-//            expect(badBoys.sequel.sequel.year).toBeNull();
-//            expect(badBoys.sequel.sequel.predecessor).toBe(badBoys.sequel);
             expect(badBoys.sequel.predecessor).toBe(badBoys);
-//            expect(badBoys.sequel.sequel.sequel).toBeNull();
+            expect(badBoys.sequel.sequel).toBeNull();
+            expect(badBoys.predecessor).toBeNull();
+          }));
+
+      it('should be able to create referenses to related nodes with extended depth', () =>
+        movieRepository.get(badBoys.id, maxDepth: 2)
+          .then((badBoys) {
+            expect(badBoys.name).toEqual('Bad Boys');
+            expect(badBoys.year).toEqual(1995);
+            expect(badBoys.sequel.name).toEqual('Bad Boys II');
+            expect(badBoys.sequel.year).toEqual(2003);
+            expect(badBoys.sequel.sequel.name).toEqual('Bad Boys 3');
+            expect(badBoys.sequel.sequel.year).toBeNull();
+            expect(badBoys.sequel.sequel.predecessor).toBe(badBoys.sequel);
+            expect(badBoys.sequel.predecessor).toBe(badBoys);
+            expect(badBoys.sequel.sequel.sequel).toBeNull();
             expect(badBoys.predecessor).toBeNull();
           }));
     });

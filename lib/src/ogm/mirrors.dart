@@ -10,6 +10,11 @@ final _num = reflectType(num);
 
 String _findLabel(DeclarationMirror cm) => MirrorSystem.getName(cm.simpleName);
 
+bool _isSimpleType(TypeMirror tm) =>
+  tm.isAssignableTo(_String) ||
+  tm.isAssignableTo(_num) ||
+  tm.isAssignableTo(_bool);
+
 InstanceMirror _createInstance(ClassMirror cm, Map properties, int id) {
   var object = cm.newInstance(defaultConstructor, []);
 
@@ -25,64 +30,35 @@ InstanceMirror _createInstance(ClassMirror cm, Map properties, int id) {
   return object;
 }
 
-Symbol _getReverseEdgeName(ClassMirror endType, Symbol startFieldName) =>
-  endType.declarations.values.firstWhere((dm) =>
-    (dm.metadata
-      .firstWhere((annotation) =>
+void _instantiateObject(Map objects, ClassMirror cm, Map properties, int id) {
+  if (!objects.containsKey(id)) {
+    objects[id] = _createInstance(cm, properties, id);
+  }
+}
+
+bool _hasEdgeObject(ClassMirror cm, Symbol field) {
+  return cm.declarations[field].type.isAssignableTo(_Edge);
+}
+
+_instantiateGraph(Map<int, InstanceMirror> objects, ClassMirror cm, Map<String, Map<String, List<Map>>> graph) {
+  for (Map node in graph['nodes']) {
+    node['id'] = int.parse(node['id']);
+    _instantiateObject(objects, cm, node['properties'], node['id']);
+  }
+
+  for (Map relation in graph['relationships']) {
+    var start = objects[int.parse(relation['startNode'])];
+    var end = objects[int.parse(relation['endNode'])];
+
+    var startFieldName = new Symbol(relation['type']);
+    var endFieldName = end.type.declarations.values.firstWhere((dm) =>
+      dm.metadata.any((annotation) =>
         annotation.type.simpleName == #ReverseOf &&
-        annotation.reflectee.field == startFieldName, orElse: () => null)
-    ) != null
-  ).simpleName;
+        annotation.reflectee.field == startFieldName
+      )).simpleName;
 
-_instantiateEdges(objects, ClassMirror cm, object, row, rowOffset, {bool incoming}) {
-  for (var i = 0; i < row[rowOffset].length; i++) {
-    var startFieldName = new Symbol(row[rowOffset][i]);
-    var endFieldName;
-    VariableMirror thisField;
-    InstanceMirror start;
-    InstanceMirror end;
-    ClassMirror otherType;
+    if (_hasEdgeObject(start.type, startFieldName)) {
 
-    if (incoming) {
-      endFieldName = _getReverseEdgeName(cm, startFieldName);
-      thisField = cm.declarations[endFieldName];
-      end = object;
-    } else {
-      thisField = cm.declarations[startFieldName];
-      start = object;
-    }
-
-    var hasEdgeObject = thisField.type.isAssignableTo(_Edge);
-
-    if (hasEdgeObject) {
-      if (incoming) {
-        otherType = thisField.type.declarations[#end].type;
-      } else {
-        otherType = thisField.type.declarations[#start].type;
-      }
-    } else {
-      otherType = thisField.type;
-    }
-
-    var other = objects[row[rowOffset + 4][i]];
-    if (other == null) {
-      other = _createInstance(otherType, row[rowOffset + 3][i], row[rowOffset + 4][i]);
-      objects[row[rowOffset + 4][i]] = other;
-    }
-
-    if (incoming) {
-      start = other;
-    } else {
-      end = other;
-      endFieldName = _getReverseEdgeName(otherType, startFieldName);
-    }
-
-    if (hasEdgeObject) {
-      var edge = _createInstance(thisField.type, row[rowOffset + 1][i], row[rowOffset + 2][i]);
-      start.setField(endFieldName, edge.reflectee);
-      edge.setField(#start, start.reflectee);
-      edge.setField(#end, end.reflectee);
-      end.setField(startFieldName, edge.reflectee);
     } else {
       start.setField(startFieldName, end.reflectee);
       end.setField(endFieldName, start.reflectee);
@@ -92,19 +68,31 @@ _instantiateEdges(objects, ClassMirror cm, object, row, rowOffset, {bool incomin
 
 _instantiate(ClassMirror cm) => (Map result) {
   var objects = {};
+  var hasRow = false;
 
   for (var row in result['data']) {
-    row = row['row'];
-    var object = objects[row[1]];
-    if (object == null) {
-      object = _createInstance(cm, row[0], row[1]);
-      objects[row[1]] = object;
+    if (row.containsKey('row')) {
+      hasRow = true;
     }
+    if (row.containsKey('graph')) {
+      _instantiateGraph(objects, cm, row['graph']);
+    } else if (row.containsKey('row')) {
+      row = row['row'];
+      _instantiateObject(objects, cm, row[1], row[0]);
+    } else {
+      throw 'Result must contain graph or row data';
+    }
+  }
 
-    if (row.length == 12) {
-      _instantiateEdges(objects, cm, object, row, 2, incoming: true);
-      _instantiateEdges(objects, cm, object, row, 7, incoming: false);
-    }
+  if (hasRow) {
+    return result['data']
+      .where((row) => row.containsKey('row') && objects.containsKey(row['row'][0]))
+      .map((row) {
+        var object = objects[row['row'][0]].reflectee;
+        objects.remove(row['row'][0]);
+        return object;
+      })
+      .toList();
   }
 
   return objects.values.map((object) => object.reflectee);
@@ -117,11 +105,8 @@ Map _getProperties(ClassMirror cm, object) {
   var readable = cm.declarations.values.where((dm) => dm.simpleName != #id &&
                                                       dm.simpleName != #label &&
                                                       !dm.isPrivate && (
-      (dm is VariableMirror && !dm.isStatic) || (dm is MethodMirror && dm.isGetter)
-  ) && (
-      dm.type.isAssignableTo(_String) ||
-      dm.type.isAssignableTo(_num) ||
-      dm.type.isAssignableTo(_bool)
+      (dm is VariableMirror && !dm.isStatic && _isSimpleType(dm.type)) ||
+      (dm is MethodMirror && dm.isGetter && _isSimpleType(reflectType(dm.runtimeType)))
   ) && dm.type.simpleName != #dynamic);
 
   readable.forEach((dm) {
@@ -131,18 +116,19 @@ Map _getProperties(ClassMirror cm, object) {
   return properties;
 }
 
+Iterable<DeclarationMirror> _getRelationFields(ClassMirror cm) =>
+  cm.declarations.values.where((dm) =>
+    dm.simpleName != #id &&
+    !dm.isPrivate && (
+       (dm is VariableMirror && !dm.isStatic && !_isSimpleType(dm.type)) ||
+       (dm is MethodMirror && dm.isGetter && !_isSimpleType(reflectType(dm.runtimeType)))
+    ));
+
 Iterable<Edge> _getEdges(ClassMirror cm, object) {
   var im = reflect(object);
 
-
-  var relations = cm.declarations.values.where((dm) => dm.simpleName != #id &&
-                                                      !dm.isPrivate && (
-      (dm is VariableMirror && !dm.isStatic) || (dm is MethodMirror && dm.isGetter)
-  ) && !(
-      dm.type.isAssignableTo(_String) ||
-      dm.type.isAssignableTo(_num) ||
-      dm.type.isAssignableTo(_bool)
-  ) && im.getField(dm.simpleName).reflectee != null);
+  var relations = _getRelationFields(cm)
+    .where(((dm) => im.getField(dm.simpleName).reflectee != null));
 
   var edges = relations
     .where((dm) => dm.type.isAssignableTo(_Edge))
@@ -177,4 +163,4 @@ _setId(Object object, int id, [ClassMirror cm]) {
 }
 
 /// Gets the database id of [entity] if it exist, or null otherwise
-int id(entity) => _objects[entity];
+int entityId(entity) => _objects[entity];

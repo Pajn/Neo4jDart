@@ -8,11 +8,16 @@ class Neo4j {
   Neo4j([this.host = 'http://127.0.0.1:7474']);
 
   /// Performs a single cypher query against the database
-  Future<Map<String, List>> cypher(String query, [Map<String, dynamic> parameters]) =>
-    cypherTransaction([new Statement(query, parameters)]).then((results) => results.first);
+  Future<Map<String, List>> cypher(String query, [Map<String, dynamic> parameters, List<String> resultDataContents]) =>
+    cypherTransaction([new Statement(query, parameters, resultDataContents)])
+      .then((results) => results.first);
 
   /// Runs multiple cypher queries in a single transaction
   Future<List<Map<String, List>>> cypherTransaction(List<Statement> statements) {
+    if (statements.isEmpty) {
+      return new Future.value([]);
+    }
+
     var body = JSON.encode({
       'statements' : statements.map((statement) => statement.toJson()).toList(growable: false)
     });

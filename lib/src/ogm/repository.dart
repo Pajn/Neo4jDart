@@ -15,8 +15,8 @@ class Repository<T> {
 
   Repository(this.db);
 
-  Future<List<T>> cypher(String query, [Map<String, dynamic> parameters]) =>
-    db.cypher(query, parameters)
+  Future<List<T>> cypher(String query, [Map<String, dynamic> parameters, List<String> resultDataContents]) =>
+    db.cypher(query, parameters, resultDataContents)
       .then(_instantiate(_t));
 
   Future<T> find(property, value) =>
@@ -36,43 +36,36 @@ class Repository<T> {
     var query = '''
       Match (n:$label)
       $filterQuery
-      Optional Match (n)<-[ir]-(im)
-      Optional Match (n)-[or]->(om)
-      Return n, id(n),
-        collect(type(ir)), collect(ir), collect(id(ir)), collect(im), collect(id(im)),
-        collect(type(or)), collect(or), collect(id(or)), collect(om), collect(id(om))
+      Optional Match (n)-[r]-(:$label)
+      Return id(n), n, r
       $skipQuery $limitQuery
     ''';
 
-    return cypher(query, {'value': equals});
+    return cypher(query, {'value': equals}, ['graph', 'row']);
   }
 
-  Future<T> get(int id) =>
+  Future<T> get(int id, {int maxDepth: 1}) =>
     cypher('''
-      Match (n:$label)
+      Match p=(n:$label)-[*0..$maxDepth]-()
       Where id(n) = {id}
-      Optional Match (n)<-[ir]-(im)
-      Optional Match (n)-[or]->(om)
-      Return n, id(n),
-        collect(type(ir)), collect(ir), collect(id(ir)), collect(im), collect(id(im)),
-        collect(type(or)), collect(or), collect(id(or)), collect(om), collect(id(om))
-    ''', {'id': id})
+      Return {id}, p
+    ''', {'id': id}, ['graph', 'row'])
       .then((result) => result.isEmpty ? null : result.first);
 
   void delete(T entity) {
-    _toDelete.add(id(entity));
+    _toDelete.add(entityId(entity));
   }
 
   void store(T entity) {
-    if (id(entity) == null) {
+    if (entityId(entity) == null) {
       _toCreate.add(entity);
     } else {
-      _toUpdate[id(entity)] = _getProperties(_t, entity);
+      _toUpdate[entityId(entity)] = _getProperties(_t, entity);
     }
 
-    var edges = _getEdges(_t, entity).where((e) => id(e.end) != null || _toCreate.contains(e.end));
+    var edges = _getEdges(_t, entity).where((e) => entityId(e.end) != null || _toCreate.contains(e.end));
     for (var edge in edges) {
-      if (id(edge) == null) {
+      if (entityId(edge) == null) {
         _edgesToCreate.add(edge);
       } else {
 //        _toUpdate[id(edge)] = _getProperties(_t, edge);
@@ -119,8 +112,8 @@ class Repository<T> {
             Return id(e)
           ''', {
               'e': _getProperties(reflectType(edge.runtimeType), edge),
-              'h': id(edge.start),
-              't': id(edge.end),
+              'h': entityId(edge.start),
+              't': entityId(edge.end),
           }));
         });
 
