@@ -41,14 +41,24 @@ bool _hasEdgeObject(ClassMirror cm, Symbol field) {
 }
 
 _instantiateGraph(Map<int, InstanceMirror> objects, ClassMirror cm, Map<String, Map<String, List<Map>>> graph) {
+  var notInstantiated = {};
+
   for (Map node in graph['nodes']) {
     node['id'] = int.parse(node['id']);
-    _instantiateObject(objects, cm, node['properties'], node['id']);
+    var className = MirrorSystem.getName(cm.simpleName);
+
+    if (node['labels'].contains(className)) {
+      _instantiateObject(objects, cm, node['properties'], node['id']);
+    } else {
+      notInstantiated[node['id']] = node['properties'];
+    }
   }
 
   for (Map relation in graph['relationships']) {
-    var start = objects[int.parse(relation['startNode'])];
-    var end = objects[int.parse(relation['endNode'])];
+    var startId = int.parse(relation['startNode']);
+    var endId = int.parse(relation['endNode']);
+    var start = objects[startId];
+    var end = objects[endId];
 
     var startFieldName = new Symbol(relation['type']);
     var endFieldName = end.type.declarations.values.firstWhere((dm) =>
@@ -57,8 +67,25 @@ _instantiateGraph(Map<int, InstanceMirror> objects, ClassMirror cm, Map<String, 
         annotation.reflectee.field == startFieldName
       )).simpleName;
 
-    if (_hasEdgeObject(start.type, startFieldName)) {
+    if (start == null) {
+      var startClass;
+      if (_hasEdgeObject(end.type, endFieldName)) {
+        startClass = end.type.declarations[endFieldName].type.superclass.declarations[#start].type;
+      } else {
+        startClass = end.type.declarations[endFieldName].type;
+      }
+      _instantiateObject(objects, startClass, notInstantiated[startId], startId);
+      start = objects[startId];
+    }
 
+    if (_hasEdgeObject(start.type, startFieldName)) {
+      var edgeId = int.parse(relation['id']);
+      _instantiateObject(objects, end.type.declarations[endFieldName].type, relation['properties'], edgeId);
+      var edge = objects[edgeId];
+      start.setField(startFieldName, edge.reflectee);
+      edge.setField(#start, start.reflectee);
+      edge.setField(#end, end.reflectee);
+      end.setField(endFieldName, edge.reflectee);
     } else {
       start.setField(startFieldName, end.reflectee);
       end.setField(endFieldName, start.reflectee);

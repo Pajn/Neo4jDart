@@ -17,18 +17,17 @@ class Movie {
 
   @ReverseOf(#predecessor)
   Movie sequel;
-}
 
-class Following extends Edge<Movie, Movie> {
-
+  @ReverseOf(#actedIn)
+  ActedIn cast;
 }
 
 class Actor {
   String name;
 
-  PlayedIn playedIn;
+  ActedIn actedIn;
 }
 
-class PlayedIn extends Edge<Actor, Movie> {
+class ActedIn extends Edge<Actor, Movie> {
   String role;
 }

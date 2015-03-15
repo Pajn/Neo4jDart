@@ -122,6 +122,11 @@ main() {
             expect(badBoys.sequel.name).toEqual('Bad Boys II');
             expect(badBoys.sequel.year).toEqual(2003);
             expect(badBoys.sequel.predecessor).toBe(badBoys);
+            expect(badBoys.cast.role).toEqual('Mike Lowrey');
+            expect(badBoys.cast.start.name).toEqual('Will Smith');
+            expect(badBoys.cast.start.actedIn).toBe(badBoys.cast);
+            expect(badBoys.cast.start).toBeA(Actor);
+            expect(badBoys.cast.end).toBe(badBoys);
             expect(badBoys.sequel.sequel).toBeNull();
             expect(badBoys.predecessor).toBeNull();
           }));
@@ -134,7 +139,10 @@ main() {
             expect(badBoys.sequel.name).toEqual('Bad Boys II');
             expect(badBoys.sequel.year).toEqual(2003);
             expect(badBoys.sequel.sequel.name).toEqual('Bad Boys 3');
+            expect(badBoys.sequel.cast.start.name).toEqual('Will Smith');
             expect(badBoys.sequel.sequel.year).toBeNull();
+            expect(badBoys.sequel.cast.start).toBe(badBoys.cast.start);
+            expect(badBoys.sequel.cast).not.toBe(badBoys.cast);
             expect(badBoys.sequel.sequel.predecessor).toBe(badBoys.sequel);
             expect(badBoys.sequel.predecessor).toBe(badBoys);
             expect(badBoys.sequel.sequel.sequel).toBeNull();

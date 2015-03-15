@@ -14,11 +14,15 @@ setUpTestData() =>
                (:Movie {name:"The Green Mile", year:1999}),
                (:Movie {name:"Avatar", year:2009}),
 
-               (:Movie {name:"Bad Boys", year:1995})
+               (bb:Movie {name:"Bad Boys", year:1995})
                  <-[:predecessor]-
-               (:Movie {name:"Bad Boys II", year:2003})
+               (bb2:Movie {name:"Bad Boys II", year:2003})
                  <-[:predecessor]-
-               (:Movie {name:"Bad Boys 3"})
+               (bb3:Movie {name:"Bad Boys 3"}),
+
+               (ws:Actor {name:"Will Smith"})-[:actedIn {role: "Mike Lowrey"}]->(bb),
+                                         (ws)-[:actedIn {role: "Mike Lowrey"}]->(bb2),
+                                         (ws)-[:actedIn {role: "Mike Lowrey"}]->(bb3)
       '''));
 
 cleanUpTestData() =>
