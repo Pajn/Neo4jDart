@@ -18,7 +18,7 @@ setUpTestData() =>
 
                (bb:Movie {name:"Bad Boys", year:1995})
                  <-[:predecessor]-
-               (bb2:Movie {name:"Bad Boys II", year:2003, someMethod: "test"})
+               (bb2:Movie {name:"Bad Boys II", year:2003})
                  <-[:predecessor]-
                (bb3:Movie {name:"Bad Boys 3"}),
 
@@ -27,7 +27,8 @@ setUpTestData() =>
                                          (ws)-[:actedIn {role: "Mike Lowrey"}]->(bb3),
 
                (:SpecialCases {method: "Value on method", private: 5, defaultValue: "changed",
-                               integer: "String", gettersAndSetters: 5, setter: 'set'})
+                               integer: "String", gettersAndSetters: 5, setter: 'set',
+                               missingField: "test"})
       '''));
 
 cleanUpTestData() =>

@@ -52,8 +52,8 @@ class UnitTestMatchersWithNe4j extends gns.UnitTestMatchers implements Neo4jMatc
         expected.values.forEach((value) {
           value['data'].sort((a, b) => a[a.keys.first].compareTo(b[a.keys.first]));
         });
-        unit.expect((result['columns'] as List).toList()..sort(),
-        unit.equals(expected.keys.toList()..sort()));
+        unit.expect(expected.keys.toList()..sort(),
+          unit.equals((result['columns'] as List).toList()..sort()));
 
         List<String> columns = result['columns'];
         for (var i = 0; i < columns.length; i++) {
@@ -61,8 +61,8 @@ class UnitTestMatchersWithNe4j extends gns.UnitTestMatchers implements Neo4jMatc
 
           if (expected[column].containsKey('data')) {
             for (var row = 0; row < expected[column]['data'].length; row++) {
-              unit.expect(expected[column]['data'][row],
-              unit.equals(result['data'][row]['row'][i]));
+              unit.expect(result['data'][row]['row'][i],
+                unit.equals(expected[column]['data'][row]));
             }
           }
         }
