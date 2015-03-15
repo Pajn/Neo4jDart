@@ -17,7 +17,11 @@ function stopDatabase {
 trap stopDatabase EXIT
 
 # Run the tests.
-dart --checked --enable-async test/runner.dart
+if [ "$TRAVIS_DART_VERSION" == "stable" ]; then
+    dart --checked --enable-async test/runner.dart
+else
+    dart --checked test/runner.dart
+fi
 
 # If the COVERALLS_TOKEN token is set on travis
 # Install dart_coveralls
