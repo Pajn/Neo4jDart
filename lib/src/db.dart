@@ -13,7 +13,7 @@ class Neo4j {
       .then((results) => results.first);
 
   /// Runs multiple cypher queries in a single transaction
-  Future<List<Map<String, List>>> cypherTransaction(List<Statement> statements) {
+  Future<List<Map<String, List>>> cypherTransaction(List<Statement> statements) async {
     if (statements.isEmpty) {
       return new Future.value([]);
     }
@@ -22,19 +22,18 @@ class Neo4j {
       'statements' : statements.map((statement) => statement.toJson()).toList(growable: false)
     });
 
-    return http.post('$host/db/data/transaction/commit', headers: {
+    var response = await http.post('$host/db/data/transaction/commit', headers: {
         'Accept': 'application/json; charset=UTF-8',
         'Content-Type': 'application/json',
       },
       body: body
-    )
-      .then((response) => response.body)
-      .then(JSON.decode)
-      .then((result) {
-        if (result['errors'].isNotEmpty) {
-          throw result;
-        }
-        return result['results'];
-      });
+    );
+
+    response = JSON.decode(response.body);
+
+    if (response['errors'].isNotEmpty) {
+      throw response;
+    }
+    return response['results'];
   }
 }

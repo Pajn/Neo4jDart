@@ -73,7 +73,7 @@ class Repository<T> {
     }
   }
 
-  Future saveChanges() {
+  Future saveChanges() async {
     var transaction = [];
 
     _toCreate.forEach((entity) =>
@@ -92,41 +92,39 @@ class Repository<T> {
           'id': id,
       })));
 
-    return db.cypherTransaction(transaction)
-      .then((results) {
-        for (var i = 0; i < _toCreate.length; i++) {
-          _setId(_toCreate[i], results[i]['data'][0]['row'][0], _t);
-        }
+    var results = await db.cypherTransaction(transaction);
 
-        _toCreate.clear();
-        _toUpdate.clear();
-        _toDelete.clear();
+    for (var i = 0; i < _toCreate.length; i++) {
+      _setId(_toCreate[i], results[i]['data'][0]['row'][0], _t);
+    }
 
-        transaction = [];
+    _toCreate.clear();
+    _toUpdate.clear();
+    _toDelete.clear();
 
-        _edgesToCreate.forEach((edge) {
-          transaction.add(new Statement('''
-            Match (h), (t)
-            Where id(h) = {h} and id(t) = {t}
-            Create (h)-[e:${edge.label} {e}]->(t)
-            Return id(e)
-          ''', {
-              'e': _getProperties(reflectType(edge.runtimeType), edge),
-              'h': entityId(edge.start),
-              't': entityId(edge.end),
-          }));
-        });
+    transaction = [];
 
-        return db.cypherTransaction(transaction);
-      })
-    .then((results) {
-      for (var i = 0; i < _edgesToCreate.length; i++) {
-        _setId(_edgesToCreate[i], results[i]['data'][0]['row'][0]);
-      }
-
-      _edgesToCreate.clear();
-      _edgesToUpdate.clear();
-      _edgesToDelete.clear();
+    _edgesToCreate.forEach((edge) {
+      transaction.add(new Statement('''
+        Match (h), (t)
+        Where id(h) = {h} and id(t) = {t}
+        Create (h)-[e:${edge.label} {e}]->(t)
+        Return id(e)
+      ''', {
+          'e': _getProperties(reflectType(edge.runtimeType), edge),
+          'h': entityId(edge.start),
+          't': entityId(edge.end),
+      }));
     });
+
+    results = await db.cypherTransaction(transaction);
+
+    for (var i = 0; i < _edgesToCreate.length; i++) {
+      _setId(_edgesToCreate[i], results[i]['data'][0]['row'][0]);
+    }
+
+    _edgesToCreate.clear();
+    _edgesToUpdate.clear();
+    _edgesToDelete.clear();
   }
 }

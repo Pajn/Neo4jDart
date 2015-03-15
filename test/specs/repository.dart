@@ -11,7 +11,7 @@ main() {
     MovieRepository movieRepository;
     Movie avatar, badBoys, cars, cars2, fury, theGreenMile, up;
 
-    beforeEach(() {
+    beforeEach(() async {
       actorRepository = new Repository<Actor>(db);
       movieRepository = new MovieRepository(db);
 
@@ -26,15 +26,12 @@ main() {
         ..name = 'Up'
         ..year = 2009;
 
-      return setUpTestData()
-        .then((_) => movieRepository.find('name', 'Avatar'))
-        .then((m) => avatar = m)
-        .then((_) => movieRepository.find('name', 'Bad Boys'))
-        .then((m) => badBoys = m)
-        .then((_) => movieRepository.find('name', 'Fury'))
-        .then((m) => fury = m)
-        .then((_) => movieRepository.find('name', 'The Green Mile'))
-        .then((m) => theGreenMile = m);
+      await setUpTestData();
+
+      avatar = await movieRepository.find('name', 'Avatar');
+      badBoys = await movieRepository.find('name', 'Bad Boys');
+      fury = await movieRepository.find('name', 'Fury');
+      theGreenMile = await movieRepository.find('name', 'The Green Mile');
     });
 
     it('should be able to create a node', () {
@@ -108,85 +105,83 @@ main() {
     });
 
     describe('get', () {
-      it('should get a node', () =>
-        movieRepository.get(avatar.id)
-          .then((a) {
-            expect(a).toHaveSameProps(avatar);
-          }));
+      it('should get a node', () async {
+        var a = await movieRepository.get(avatar.id);
+        expect(a).toHaveSameProps(avatar);
+      });
 
-      it('should be able to create referenses to related nodes', () =>
-        movieRepository.get(badBoys.id)
-          .then((badBoys) {
-            expect(badBoys.name).toEqual('Bad Boys');
-            expect(badBoys.year).toEqual(1995);
-            expect(badBoys.sequel.name).toEqual('Bad Boys II');
-            expect(badBoys.sequel.year).toEqual(2003);
-            expect(badBoys.sequel.predecessor).toBe(badBoys);
-            expect(badBoys.cast.role).toEqual('Mike Lowrey');
-            expect(badBoys.cast.start.name).toEqual('Will Smith');
-            expect(badBoys.cast.start.actedIn).toBe(badBoys.cast);
-            expect(badBoys.cast.start).toBeA(Actor);
-            expect(badBoys.cast.end).toBe(badBoys);
-            expect(badBoys.sequel.sequel).toBeNull();
-            expect(badBoys.predecessor).toBeNull();
-          }));
+      it('should be able to create referenses to related nodes', () async {
+        var badBoys1 = await movieRepository.get(badBoys.id);
 
-      it('should be able to create referenses to related nodes with extended depth', () =>
-        movieRepository.get(badBoys.id, maxDepth: 2)
-          .then((badBoys) {
-            expect(badBoys.name).toEqual('Bad Boys');
-            expect(badBoys.year).toEqual(1995);
-            expect(badBoys.sequel.name).toEqual('Bad Boys II');
-            expect(badBoys.sequel.year).toEqual(2003);
-            expect(badBoys.sequel.sequel.name).toEqual('Bad Boys 3');
-            expect(badBoys.sequel.cast.start.name).toEqual('Will Smith');
-            expect(badBoys.sequel.sequel.year).toBeNull();
-            expect(badBoys.sequel.cast.start).toBe(badBoys.cast.start);
-            expect(badBoys.sequel.cast).not.toBe(badBoys.cast);
-            expect(badBoys.sequel.sequel.predecessor).toBe(badBoys.sequel);
-            expect(badBoys.sequel.predecessor).toBe(badBoys);
-            expect(badBoys.sequel.sequel.sequel).toBeNull();
-            expect(badBoys.predecessor).toBeNull();
-          }));
+        expect(badBoys1.name).toEqual('Bad Boys');
+        expect(badBoys1.year).toEqual(1995);
+        expect(badBoys1.sequel.name).toEqual('Bad Boys II');
+        expect(badBoys1.sequel.year).toEqual(2003);
+        expect(badBoys1.sequel.predecessor).toBe(badBoys1);
+        expect(badBoys1.cast.role).toEqual('Mike Lowrey');
+        expect(badBoys1.cast.start.name).toEqual('Will Smith');
+        expect(badBoys1.cast.start.actedIn).toBe(badBoys1.cast);
+        expect(badBoys1.cast.start).toBeA(Actor);
+        expect(badBoys1.cast.end).toBe(badBoys1);
+        expect(badBoys1.sequel.sequel).toBeNull();
+        expect(badBoys1.predecessor).toBeNull();
+      });
+
+      it('should be able to create referenses to related nodes with extended depth', () async {
+        var badBoys1 = await movieRepository.get(badBoys.id, maxDepth: 2);
+
+        expect(badBoys1.name).toEqual('Bad Boys');
+        expect(badBoys1.year).toEqual(1995);
+        expect(badBoys1.sequel.name).toEqual('Bad Boys II');
+        expect(badBoys1.sequel.year).toEqual(2003);
+        expect(badBoys1.sequel.sequel.name).toEqual('Bad Boys 3');
+        expect(badBoys1.sequel.cast.start.name).toEqual('Will Smith');
+        expect(badBoys1.sequel.sequel.year).toBeNull();
+        expect(badBoys1.sequel.cast.start).toBe(badBoys1.cast.start);
+        expect(badBoys1.sequel.cast).not.toBe(badBoys1.cast);
+        expect(badBoys1.sequel.sequel.predecessor).toBe(badBoys1.sequel);
+        expect(badBoys1.sequel.predecessor).toBe(badBoys1);
+        expect(badBoys1.sequel.sequel.sequel).toBeNull();
+        expect(badBoys1.predecessor).toBeNull();
+      });
     });
 
     describe('findAll', () {
-      it('should get all nodes', () =>
-        movieRepository.findAll()
-          .then((allMovies) =>
-            expect(allMovies.map((movie) => movie.name).toList()..sort())
-              .toEqual([
-                'Avatar',
-                'Bad Boys',
-                'Bad Boys 3',
-                'Bad Boys II',
-                'Fury',
-                'The Green Mile',
-              ])));
+      it('should get all nodes', () async {
+        var allMovies = await movieRepository.findAll();
 
-        it('should create referenses to related nodes', () =>
-          movieRepository.findAll()
-            .then((allMovies) {
-              var badBoys = allMovies.singleWhere((movie) => movie.name == 'Bad Boys');
-              var badBoys2 = allMovies.singleWhere((movie) => movie.name == 'Bad Boys II');
-              var badBoys3 = allMovies.singleWhere((movie) => movie.name == 'Bad Boys 3');
+        expect(allMovies.map((movie) => movie.name).toList()..sort()).toEqual([
+            'Avatar',
+            'Bad Boys',
+            'Bad Boys 3',
+            'Bad Boys II',
+            'Fury',
+            'The Green Mile',
+        ]);
+      });
 
-              expect(badBoys.sequel).toBe(badBoys2);
-              expect(badBoys2.sequel).toBe(badBoys3);
-              expect(badBoys3.sequel).toBeNull();
-              expect(badBoys.predecessor).toBeNull();
-              expect(badBoys2.predecessor).toBe(badBoys);
-              expect(badBoys3.predecessor).toBe(badBoys2);
-            }));
+      it('should create referenses to related nodes', () async {
+        var allMovies = await movieRepository.findAll();
+        var badBoys = allMovies.singleWhere((movie) => movie.name == 'Bad Boys');
+        var badBoys2 = allMovies.singleWhere((movie) => movie.name == 'Bad Boys II');
+        var badBoys3 = allMovies.singleWhere((movie) => movie.name == 'Bad Boys 3');
+
+        expect(badBoys.sequel).toBe(badBoys2);
+        expect(badBoys2.sequel).toBe(badBoys3);
+        expect(badBoys3.sequel).toBeNull();
+        expect(badBoys.predecessor).toBeNull();
+        expect(badBoys2.predecessor).toBe(badBoys);
+        expect(badBoys3.predecessor).toBe(badBoys2);
+      });
     });
 
     describe('cypher', () {
-      it('should instanciate the returned nodes', () =>
-        movieRepository.recentMovies
-          .then(expectAsync((recentMovies) {
-            expect(recentMovies.map((movie) => movie.name).toList()..sort())
-              .toEqual(['Avatar', 'Fury']);
-          })));
+      it('should instanciate the returned nodes', () async {
+        var recentMovies = await movieRepository.recentMovies;
+        recentMovies = recentMovies.map((movie) => movie.name).toList()..sort();
+
+        expect(recentMovies).toEqual(['Avatar', 'Fury']);
+      });
     });
   });
 }

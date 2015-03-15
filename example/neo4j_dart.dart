@@ -5,16 +5,15 @@ library neo4j_dart.example;
 
 import 'package:neo4j_dart/neo4j_dart.dart';
 
-main() {
+main() async {
   var db = new Neo4j();
-  db.cypher('''
+  var result = await db.cypher('''
         Create (dart:Language {dart})-[:connects_to]->(neo4j:Database {neo4j})
-        Return id(dart) as dart, id(neo4j) as neo4j
+        Return id(dart), id(neo4j)
       ''', {
       'dart': { 'name': 'Dart' },
       'neo4j': { 'name': 'Neo4j' },
-  })
-    .then((result) {
-      print('successfully created two nodes with id ${result['data'][0]['row'].join(' and ')}');
-    });
+  });
+
+  print('successfully created two nodes with id ${result['data'][0]['row'].join(' and ')}');
 }

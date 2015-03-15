@@ -19,18 +19,17 @@ main() {
       );
     });
 
-    it('should support parameterized queries', () {
+    it('should support parameterized queries', () async {
       var query = db.cypher('''
         Create (js:Language {js})
         Return js
       ''', {'js': {'name': 'JavaScript'}});
 
-      return expect(query).toReturnNodes([{
+      await expect(query).toReturnNodes([{
         'js': { 'data': [{'name': 'JavaScript'}]}
-      }])
-      .then((_) =>
-        expect(query).toHaveWritten('(a:Language {name: "JavaScript"})')
-      );
+      }]);
+
+      await expect(query).toHaveWritten('(a:Language {name: "JavaScript"})');
     });
 
     it('should be able to query the database for a table result', () {
