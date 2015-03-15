@@ -6,7 +6,7 @@ import '../helpers/domain.dart';
 main() {
   var db = setUp();
 
-  describe('NodeRepository', () {
+  describe('Repository', () {
     Repository<Actor> actorRepository;
     MovieRepository movieRepository;
     Movie avatar, badBoys, cars, cars2, fury, theGreenMile, up;
