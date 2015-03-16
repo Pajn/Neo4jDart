@@ -5,18 +5,23 @@ final _objects = new Expando();
 final _hasRelation = new Expando();
 
 final _Edge = reflectType(Edge);
+final _DateTime = reflectType(DateTime);
 final _String = reflectType(String);
 final _bool = reflectType(bool);
 final _num = reflectType(num);
+final _Iterable = reflectType(Iterable);
 
 String _findLabel(DeclarationMirror cm) => MirrorSystem.getName(cm.simpleName);
 
-bool _isSimpleType(Object object) {
-  var tm = reflectType(object.runtimeType);
+bool _isSimpleType(object) {
+  if (object is! TypeMirror) {
+    object = reflectType(object.runtimeType);
+  }
 
-  return tm.isAssignableTo(_String) ||
-         tm.isAssignableTo(_num) ||
-         tm.isAssignableTo(_bool);
+  return object.isAssignableTo(_String) ||
+         object.isAssignableTo(_num) ||
+         object.isAssignableTo(_bool) ||
+         object.isAssignableTo(_DateTime);
 }
 
 Map<Symbol, DeclarationMirror> _getDeclarations(ClassMirror cm) {
@@ -28,6 +33,16 @@ Map<Symbol, DeclarationMirror> _getDeclarations(ClassMirror cm) {
     ..addAll(cm.declarations)
     ..addAll(_getDeclarations(cm.superclass));
 }
+
+bool _isAssignableTo(TypeMirror value, TypeMirror field) =>
+  value.isAssignableTo(field) ||
+  (
+      (
+          value.isSubtypeOf(field.originalDeclaration) ||
+          value.superinterfaces.any((cm) => cm.simpleName == field.simpleName)
+      ) &&
+      field.typeArguments.isNotEmpty && value.typeArguments.isEmpty
+  );
 
 bool _canSetType(Map<Symbol, DeclarationMirror> declarations, Symbol field, Type type) {
   var tm = reflectClass(type);
@@ -42,8 +57,8 @@ bool _canSetType(Map<Symbol, DeclarationMirror> declarations, Symbol field, Type
   var dm = declarations[field];
 
   return !dm.isPrivate && !dm.isStatic && (
-      (dm is VariableMirror && !dm.isConst && !dm.isFinal && tm.isAssignableTo(dm.type)) ||
-      (dm is MethodMirror && dm.isSetter && tm.isAssignableTo(dm.parameters.first.type))
+      (dm is VariableMirror && !dm.isConst && !dm.isFinal && _isAssignableTo(tm, dm.type)) ||
+      (dm is MethodMirror && dm.isSetter && _isAssignableTo(tm, dm.parameters.first.type))
   );
 }
 
@@ -54,8 +69,16 @@ void _instantiateObject(Map objects, ClassMirror cm, Map properties, int id) {
 
     properties.forEach((property, value) {
       var field = new Symbol(property);
-      if (_canSetType(declarations, field, value.runtimeType)) {
+      var type;
+      if (value is List && value.isNotEmpty && value.first is int &&
+          _canSetType(declarations, field, <DateTime>[].runtimeType)) {
+        object.setField(field, value.map((date) =>
+          new DateTime.fromMillisecondsSinceEpoch(date)).toList()
+        );
+      } else if (_canSetType(declarations, field, value.runtimeType)) {
         object.setField(field, value);
+      } else if (value is int && _canSetType(declarations, field, DateTime)) {
+        object.setField(field, new DateTime.fromMillisecondsSinceEpoch(value));
       }
     });
 
@@ -64,20 +87,32 @@ void _instantiateObject(Map objects, ClassMirror cm, Map properties, int id) {
   }
 }
 
-bool _isEdgeField(DeclarationMirror dm) =>
-  (dm is VariableMirror && dm.type.isAssignableTo(_Edge)) ||
-  (dm is MethodMirror && dm.returnType.isAssignableTo(_Edge));
+bool _isEdgeField(DeclarationMirror dm) {
+  TypeMirror field;
+  if (dm is VariableMirror) {
+    field = dm.type;
+  } else if (dm is MethodMirror && dm.isGetter) {
+    field = dm.returnType;
+  }
 
-bool _hasEdgeObject(ClassMirror cm, Symbol field) =>
-  _isEdgeField(cm.declarations[field]);
+  if (_isAssignableTo(_Iterable, field)) {
+    field = field.typeArguments.first;
+  }
+  if (field.isAssignableTo(_Edge)) {
+    return true;
+  }
+
+  return false;
+}
 
 Object _findOtherObject(Map objects, Map properties, Object start, Symbol field, Symbol edgeField,
                         int otherId) {
-  var otherClass;
-  if (_hasEdgeObject(start.type, field)) {
-    otherClass = start.type.declarations[field].type.superclass.declarations[edgeField].type;
-  } else {
-    otherClass = start.type.declarations[field].type;
+  ClassMirror otherClass = start.type.declarations[field].type;
+  if (otherClass.isAssignableTo(_Iterable)) {
+    otherClass = otherClass.typeArguments.first;
+  }
+  if (otherClass.isAssignableTo(_Edge)) {
+    otherClass = otherClass.superclass.declarations[edgeField].type;
   }
   _instantiateObject(objects, otherClass, properties, otherId);
   return objects[otherId];
@@ -89,11 +124,19 @@ bool _isReverseRelation(DeclarationMirror dm, [Symbol to]) =>
     (to == null || annotation.reflectee.field == to)
   );
 
-void _keepRelation(Object object, Symbol field, int edgeId) {
+void _keepRelation(Object object, Symbol field, int edgeId, [int entityId]) {
   if (_hasRelation[object] == null) {
-    _hasRelation[object] = [{#field: field, #id: edgeId}];
+    _hasRelation[object] = [{#field: field, #id: edgeId, #entity: entityId}];
   } else {
-    _hasRelation[object].add({#field: field, #id: edgeId});
+    _hasRelation[object].add({#field: field, #id: edgeId, #entity: entityId});
+  }
+}
+
+void _addToCollection(InstanceMirror object, Symbol field, item) {
+  if (object.getField(field).reflectee == null) {
+    object.setField(field, [item]);
+  } else {
+    object.getField(field).reflectee.add(item);
   }
 }
 
@@ -116,8 +159,10 @@ _instantiateGraph(Map<int, InstanceMirror> objects, ClassMirror cm, Map<String, 
     var edgeId = int.parse(relation['id']);
     var endId = int.parse(relation['endNode']);
 
-    var start = objects[startId];
-    var end = objects[endId];
+    InstanceMirror start = objects[startId];
+    InstanceMirror end = objects[endId];
+
+    Map<Symbol, DeclarationMirror> startDeclarations;
 
     var startFieldName = new Symbol(relation['type']);
     var endFieldName;
@@ -137,27 +182,47 @@ _instantiateGraph(Map<int, InstanceMirror> objects, ClassMirror cm, Map<String, 
       }
     } on StateError catch(e) {}
 
-    _keepRelation(start.reflectee, startFieldName, edgeId);
+    startDeclarations = _getDeclarations(start.type);
 
-    if (_hasEdgeObject(start.type, startFieldName)) {
-      _instantiateObject(
-          objects, start.type.declarations[startFieldName].type, relation['properties'], edgeId
-      );
+    if (_isEdgeField(startDeclarations[startFieldName])) {
+      _keepRelation(start.reflectee, startFieldName, edgeId);
 
-      var edge = objects[edgeId];
-      start.setField(startFieldName, edge.reflectee);
+      var edge;
+      if (_canSetType(startDeclarations, startFieldName, List)) {
+        _instantiateObject(
+            objects, startDeclarations[startFieldName].type.typeArguments.first, relation['properties'], edgeId
+        );
+        edge = objects[edgeId];
+        _addToCollection(start, startFieldName, edge.reflectee);
+      } else {
+        _instantiateObject(
+            objects, startDeclarations[startFieldName].type, relation['properties'], edgeId
+        );
+        edge = objects[edgeId];
+        start.setField(startFieldName, edge.reflectee);
+      }
       edge.setField(#start, start.reflectee);
       edge.setField(#end, end.reflectee);
 
       start = edge;
     } else {
-      start.setField(startFieldName, end.reflectee);
+      _keepRelation(start.reflectee, startFieldName, edgeId, entityId(end.reflectee));
+
+      if (_canSetType(startDeclarations, startFieldName, List)) {
+        _addToCollection(start, startFieldName, end.reflectee);
+      } else {
+        start.setField(startFieldName, end.reflectee);
+      }
     }
 
     if (endFieldName != null) {
-      end.setField(endFieldName, start.reflectee);
+      if (_canSetType(_getDeclarations(end.type), endFieldName, List)) {
+        _addToCollection(end, endFieldName, start.reflectee);
+      } else {
+        end.setField(endFieldName, start.reflectee);
+      }
 
-      _keepRelation(end.reflectee, endFieldName, edgeId);
+      _keepRelation(end.reflectee, endFieldName, edgeId, entityId(start.reflectee));
     }
   }
 }
@@ -208,7 +273,16 @@ Map _getProperties(ClassMirror cm, object) {
   for (var dm in _getReadableFields(cm)) {
     var object = im.getField(dm.simpleName).reflectee;
 
-    if (object != null && _isSimpleType(object)) {
+    if (object != null && _isSimpleType(object) ||
+        (
+            object is Iterable &&
+            (object.isEmpty || (object.isNotEmpty && _isSimpleType(object.first)))
+        )) {
+      if (object is DateTime) {
+        object = objectmillisecondsSinceEpoch;
+      } else if (object is Iterable && object.isNotEmpty && object.first is DateTime) {
+        object = object.map((date) => date.millisecondsSinceEpoch).toList();
+      }
       properties[_findLabel(dm)] = object;
     }
   }
@@ -216,28 +290,69 @@ Map _getProperties(ClassMirror cm, object) {
   return properties;
 }
 
-Iterable<Edge> _getEdges(ClassMirror cm, object) {
-  var im = reflect(object);
+TypeMirror _collectionType(DeclarationMirror dm) {
+  TypeMirror type;
+  if (dm is VariableMirror) {
+    type = dm.type;
+  } else if (dm is MethodMirror && dm.isGetter) {
+    type = dm.returnType;
+  }
+  if (type.typeArguments.isEmpty) {
+    return reflectType(Object);
+  }
+
+  return type.typeArguments.first;
+}
+
+
+Iterable<Edge> _getEdges(ClassMirror cm, start) {
+  var im = reflect(start);
 
   var relations = _getReadableFields(cm).where((dm) {
     var object = im.getField(dm.simpleName).reflectee;
 
-    return object != null && !_isSimpleType(object);
+    return object != null && !_isSimpleType(object) && !(object is List && _isSimpleType(_collectionType(dm)));
   });
 
   var edges = relations
     .where(_isEdgeField)
-    .map(((dm) => im.getField(dm.simpleName).reflectee))
+    .expand((dm) {
+      var object = im.getField(dm.simpleName).reflectee;
+      if (object is Iterable) {
+        return object.map((edge) => edge
+          ..start = start
+          ..label = _findLabel(dm));
+      } else {
+        return [object
+          ..start = start
+          ..label = _findLabel(dm)
+        ];
+      }
+    })
     .toList();
 
   edges.addAll(relations
     .where((dm) => !_isEdgeField(dm) &&
                    !_isReverseRelation(dm))
-    .map(((dm) => new Edge()
-      ..start = object
-      ..end = im.getField(dm.simpleName).reflectee
-      ..label = _findLabel(dm))
-    ));
+    .expand((dm) {
+      var object = im.getField(dm.simpleName).reflectee;
+      if (object is Iterable) {
+        return object
+          .map(((end) => new Edge()
+            ..start = start
+            ..end = end
+            ..label = _findLabel(dm))
+          );
+      } else {
+        return [
+          new Edge()
+            ..start = start
+            ..end = object
+            ..label = _findLabel(dm)
+        ];
+      }
+    })
+    .toList());
 
   return edges;
 }
@@ -249,7 +364,20 @@ Iterable<int> _removedRelations(Object object) {
   var im = reflect(object);
 
   return _hasRelation[object]
-    .where((relation) => im.getField(relation[#field]).reflectee == null)
+    .where((relation) {
+      var value = im.getField(relation[#field]).reflectee;
+
+      if (value is Iterable) {
+        return value.every((edge) {
+          if (edge is Edge) {
+            return entityId(edge) != relation[#id];
+          }
+          return entityId(edge) != relation[#entity];
+        });
+      }
+
+      return value == null;
+    })
     .map((relation) => relation[#id]);
 }
 

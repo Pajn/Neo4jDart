@@ -14,7 +14,7 @@ setUpTestData() =>
                (:Movie {name:"The Green Mile", year:1999}),
                (:Movie {name:"Avatar", year:2009})
                  -[:centralCharacter {role: "Jake Sully"}]->
-               (:Actor {name: "Sam Worthington"}),
+               (:Actor {name: "Sam Worthington", birthDate: 207788400000}),
 
                (bb:Movie {name:"Bad Boys", year:1995})
                  <-[:predecessor]-

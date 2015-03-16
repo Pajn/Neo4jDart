@@ -10,7 +10,7 @@ main() {
     Repository<Actor> actorRepository;
     MovieRepository movieRepository;
     Repository<SpecialCases> specialsRepository;
-    Actor owen;
+    Actor owen, maggie, will;
     Movie avatar, badBoys, cars, cars2, fury, theGreenMile, up;
 
     beforeEach(() async {
@@ -27,9 +27,24 @@ main() {
         ..predecessor = cars;
       up = new Movie()
         ..name = 'Up'
-        ..year = 2009;
+        ..year = 2009
+        ..releaseDates = [
+          new DateTime(2009, 05, 13),
+          new DateTime(2009, 05, 16),
+        ];
       owen = new Actor()
-        ..name = 'Owen Wilson';
+        ..name = 'Owen Wilson'
+        ..actedIn = [
+          new ActedIn()
+            ..role = 'Lightning McQueen'
+            ..end = cars,
+          new ActedIn()
+            ..role = 'Lightning McQueen'
+            ..end = cars2,
+        ];
+      maggie = new Actor()
+        ..name = 'Maggie Denise Quigley'
+        ..nicknames = ['Maggie Q', 'Q'];
 
       await setUpTestData();
 
@@ -37,13 +52,14 @@ main() {
       badBoys = await movieRepository.find('name', 'Bad Boys');
       fury = await movieRepository.find('name', 'Fury');
       theGreenMile = await movieRepository.find('name', 'The Green Mile');
+      will = await actorRepository.find('name', 'Will Smith');
     });
 
     it('should be able to create a node', () {
-      movieRepository.store(up);
+      movieRepository.store(cars);
 
       var query = movieRepository.saveChanges();
-      return expect(query).toHaveWritten('(a:Movie {name:"Up", year:2009})');
+      return expect(query).toHaveWritten('(a:Movie {name:"Cars", year:2006})');
     });
 
     it('should be able to create multiple nodes', () {
@@ -55,6 +71,33 @@ main() {
         (a:Movie {name:"Cars", year:2006}),
         (b:Movie {name:"Up", year:2009})
       ''');
+    });
+
+    it('should be able to handle a collections', () async {
+      actorRepository.store(maggie);
+
+      var query = actorRepository.saveChanges();
+      await expect(query).toHaveWritten(
+          '(a:Actor {name:"Maggie Denise Quigley", nicknames: ["Maggie Q", "Q"]})'
+      );
+
+      var m = await actorRepository.find('name', 'Maggie Denise Quigley');
+      expect(m.nicknames).toEqual(['Maggie Q', 'Q']);
+    });
+
+    it('should be able to handle of collections of dates', () async {
+      movieRepository.store(up);
+
+      var query = movieRepository.saveChanges();
+      await expect(query).toHaveWritten(
+          '(a:Movie {name:"Up", year:2009, releaseDates: [1242165600000,1242424800000]})'
+      );
+
+      var movie = await movieRepository.find('name', 'Up');
+      expect(movie.releaseDates).toEqual([
+          new DateTime(2009, 05, 13),
+          new DateTime(2009, 05, 16),
+      ]);
     });
 
     it('should be able to create a node with inherited properties', () {
@@ -73,6 +116,42 @@ main() {
         (cars:Movie {name:"Cars", year:2006}),
         (cars2:Movie {name:"Cars 2", year:2011}),
         (cars2)-[:predecessor]->(cars)
+      ''');
+    });
+
+    it('should be able to create a node with a collection of relations', () async {
+      movieRepository.store(cars);
+      movieRepository.store(cars2);
+
+      await movieRepository.saveChanges();
+      actorRepository.store(owen);
+
+      var query = actorRepository.saveChanges();
+      return expect(query).toHaveWritten('''
+        (owen:Actor {name:"Owen Wilson"}),
+        (cars:Movie {name:"Cars", year:2006}),
+        (cars2:Movie {name:"Cars 2", year:2011}),
+        (owen)-[:actedIn {role: "Lightning McQueen"}]->(cars),
+        (owen)-[:actedIn {role: "Lightning McQueen"}]->(cars2)
+      ''');
+    });
+
+    it('should be able to create a relation from a collection', () async {
+      will.actedIn.add(
+          new ActedIn()
+            ..role = 'just a test'
+            ..end = avatar
+      );
+      actorRepository.store(will);
+
+      var query = actorRepository.saveChanges();
+      await expect(query).toHaveWritten('''
+        (ws:Actor {name:"Will Smith"})-[:actedIn {role: "just a test"}]->(:Movie {name: "Avatar"})
+      ''');
+      await expect(query).not.toHaveDeleted('''
+        (ws:Actor {name:"Will Smith"})-[:actedIn]->(:Movie {name: "Bad Boys"}),
+                                  (ws)-[:actedIn]->(:Movie {name: "Bad Boys II"}),
+                                  (ws)-[:actedIn]->(:Movie {name: "Bad Boys 3"})
       ''');
     });
 
@@ -146,6 +225,20 @@ main() {
       return expect(query).toHaveDeleted('(a:Movie {name:"Avatar", year:2009})');
     });
 
+    it('should be able to delete a relation from a collection', () async {
+      will.actedIn.removeWhere((role) => role.end.name == 'Bad Boys');
+      actorRepository.store(will);
+
+      var query = actorRepository.saveChanges();
+      await expect(query).toHaveDeleted('''
+        (ws:Actor {name:"Will Smith"})-[:actedIn]->(:Movie {name: "Bad Boys"})
+      ''');
+      await expect(query).not.toHaveDeleted('''
+        (ws:Actor {name:"Will Smith"})-[:actedIn]->(:Movie {name: "Bad Boys II"}),
+                                  (ws)-[:actedIn]->(:Movie {name: "Bad Boys 3"})
+      ''');
+    });
+
     describe('get', () {
       it('should get a node', () async {
         var f = await movieRepository.get(fury.id);
@@ -159,6 +252,7 @@ main() {
         expect(a.name).toEqual('Avatar');
         expect(a.centralCharacter.role).toEqual('Jake Sully');
         expect(a.centralCharacter.end.name).toEqual('Sam Worthington');
+        expect(a.centralCharacter.end.birthDate).toEqual(new DateTime(1976, 08, 02));
         expect(a.centralCharacter.start).toBe(a);
         expect(a.centralCharacter.end).toBeA(Actor);
         expect(a.centralCharacter).toBeA(Role);
@@ -172,11 +266,13 @@ main() {
         expect(badBoys1.sequel.name).toEqual('Bad Boys II');
         expect(badBoys1.sequel.year).toEqual(2003);
         expect(badBoys1.sequel.predecessor).toBe(badBoys1);
-        expect(badBoys1.cast.role).toEqual('Mike Lowrey');
-        expect(badBoys1.cast.start.name).toEqual('Will Smith');
-        expect(badBoys1.cast.start.actedIn).toBe(badBoys1.cast);
-        expect(badBoys1.cast.start).toBeA(Actor);
-        expect(badBoys1.cast.end).toBe(badBoys1);
+        expect(badBoys1.cast.length).toEqual(1);
+        expect(badBoys1.cast.first.role).toEqual('Mike Lowrey');
+        expect(badBoys1.cast.first.start.name).toEqual('Will Smith');
+        expect(badBoys1.cast.first.start.actedIn.length).toEqual(1);
+        expect(badBoys1.cast.first.start.actedIn.first).toBe(badBoys1.cast.first);
+        expect(badBoys1.cast.first.start).toBeA(Actor);
+        expect(badBoys1.cast.first.end).toBe(badBoys1);
         expect(badBoys1.sequel.sequel).toBeNull();
         expect(badBoys1.predecessor).toBeNull();
       });
@@ -189,10 +285,12 @@ main() {
         expect(badBoys1.sequel.name).toEqual('Bad Boys II');
         expect(badBoys1.sequel.year).toEqual(2003);
         expect(badBoys1.sequel.sequel.name).toEqual('Bad Boys 3');
-        expect(badBoys1.sequel.cast.start.name).toEqual('Will Smith');
+        expect(badBoys1.sequel.cast.length).toEqual(1);
+        expect(badBoys1.sequel.cast.first.start.name).toEqual('Will Smith');
         expect(badBoys1.sequel.sequel.year).toBeNull();
-        expect(badBoys1.sequel.cast.start).toBe(badBoys1.cast.start);
-        expect(badBoys1.sequel.cast).not.toBe(badBoys1.cast);
+        expect(badBoys1.cast.length).toEqual(1);
+        expect(badBoys1.sequel.cast.first.start).toBe(badBoys1.cast.first.start);
+        expect(badBoys1.sequel.cast.first).not.toBe(badBoys1.cast.first);
         expect(badBoys1.sequel.sequel.predecessor).toBe(badBoys1.sequel);
         expect(badBoys1.sequel.predecessor).toBe(badBoys1);
         expect(badBoys1.sequel.sequel.sequel).toBeNull();

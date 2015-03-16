@@ -12,6 +12,7 @@ class Movie {
   int id;
   String name;
   int year;
+  List<DateTime> releaseDates = [];
 
   Movie predecessor;
   Role centralCharacter;
@@ -20,15 +21,17 @@ class Movie {
   Movie sequel;
 
   @ReverseOf(#actedIn)
-  ActedIn cast;
+  Iterable<ActedIn> cast;
 }
 
 class Person {
   String name;
+  List<String> nicknames;
+  DateTime birthDate;
 }
 
 class Actor extends Person {
-  ActedIn actedIn;
+  List<ActedIn> actedIn;
 }
 
 class SpecialCases {
