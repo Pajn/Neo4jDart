@@ -73,12 +73,12 @@ void _instantiateObject(Map objects, ClassMirror cm, Map properties, int id) {
       if (value is List && value.isNotEmpty && value.first is int &&
           _canSetType(declarations, field, <DateTime>[].runtimeType)) {
         object.setField(field, value.map((date) =>
-          new DateTime.fromMillisecondsSinceEpoch(date)).toList()
+          new DateTime.fromMillisecondsSinceEpoch(date, isUtc: true)).toList()
         );
       } else if (_canSetType(declarations, field, value.runtimeType)) {
         object.setField(field, value);
       } else if (value is int && _canSetType(declarations, field, DateTime)) {
-        object.setField(field, new DateTime.fromMillisecondsSinceEpoch(value));
+        object.setField(field, new DateTime.fromMillisecondsSinceEpoch(value, isUtc: true));
       }
     });
 
@@ -279,9 +279,9 @@ Map _getProperties(ClassMirror cm, object) {
             (object.isEmpty || (object.isNotEmpty && _isSimpleType(object.first)))
         )) {
       if (object is DateTime) {
-        object = objectmillisecondsSinceEpoch;
+        object = object.toUtc().millisecondsSinceEpoch;
       } else if (object is Iterable && object.isNotEmpty && object.first is DateTime) {
-        object = object.map((date) => date.millisecondsSinceEpoch).toList();
+        object = object.map((date) => date.toUtc().millisecondsSinceEpoch).toList();
       }
       properties[_findLabel(dm)] = object;
     }

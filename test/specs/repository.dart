@@ -29,8 +29,8 @@ main() {
         ..name = 'Up'
         ..year = 2009
         ..releaseDates = [
-          new DateTime(2009, 05, 13),
-          new DateTime(2009, 05, 16),
+          new DateTime.utc(2009, 05, 13),
+          new DateTime.utc(2009, 05, 16),
         ];
       owen = new Actor()
         ..name = 'Owen Wilson'
@@ -90,13 +90,13 @@ main() {
 
       var query = movieRepository.saveChanges();
       await expect(query).toHaveWritten(
-          '(a:Movie {name:"Up", year:2009, releaseDates: [1242165600000,1242424800000]})'
+          '(a:Movie {name:"Up", year:2009, releaseDates: [1242172800000,1242432000000]})'
       );
 
       var movie = await movieRepository.find('name', 'Up');
       expect(movie.releaseDates).toEqual([
-          new DateTime(2009, 05, 13),
-          new DateTime(2009, 05, 16),
+          new DateTime.utc(2009, 05, 13),
+          new DateTime.utc(2009, 05, 16),
       ]);
     });
 
@@ -252,7 +252,7 @@ main() {
         expect(a.name).toEqual('Avatar');
         expect(a.centralCharacter.role).toEqual('Jake Sully');
         expect(a.centralCharacter.end.name).toEqual('Sam Worthington');
-        expect(a.centralCharacter.end.birthDate).toEqual(new DateTime(1976, 08, 02));
+        expect(a.centralCharacter.end.birthDate).toEqual(new DateTime.utc(1976, 08, 02));
         expect(a.centralCharacter.start).toBe(a);
         expect(a.centralCharacter.end).toBeA(Actor);
         expect(a.centralCharacter).toBeA(Role);
