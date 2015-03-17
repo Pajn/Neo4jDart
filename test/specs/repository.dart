@@ -73,7 +73,7 @@ main() {
       ''');
     });
 
-    it('should be able to handle a collections', () async {
+    it('should be able to handle collections', () async {
       actorRepository.store(maggie);
 
       var query = actorRepository.saveChanges();

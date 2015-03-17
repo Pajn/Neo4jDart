@@ -34,12 +34,13 @@ Map<Symbol, DeclarationMirror> _getDeclarations(ClassMirror cm) {
     ..addAll(_getDeclarations(cm.superclass));
 }
 
-bool _isAssignableTo(TypeMirror value, TypeMirror field) =>
+bool _isAssignableTo(ClassMirror value, TypeMirror field) =>
   value.isAssignableTo(field) ||
   (
       (
           value.isSubtypeOf(field.originalDeclaration) ||
-          value.superinterfaces.any((cm) => cm.simpleName == field.simpleName)
+          value.superinterfaces.any((cm) => cm.simpleName == field.simpleName) ||
+          (value.superclass.mixin.simpleName == #ListBase && field.isSubtypeOf(reflectType(List)))
       ) &&
       field.typeArguments.isNotEmpty && value.typeArguments.isEmpty
   );
