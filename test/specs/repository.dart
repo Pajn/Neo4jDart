@@ -48,11 +48,11 @@ main() {
 
       await setUpTestData();
 
-      avatar = await movieRepository.find('name', 'Avatar');
-      badBoys = await movieRepository.find('name', 'Bad Boys');
-      fury = await movieRepository.find('name', 'Fury');
-      theGreenMile = await movieRepository.find('name', 'The Green Mile');
-      will = await actorRepository.find('name', 'Will Smith');
+      avatar = await movieRepository.find({'name': 'Avatar'});
+      badBoys = await movieRepository.find({'name': 'Bad Boys'});
+      fury = await movieRepository.find({'name': 'Fury'});
+      theGreenMile = await movieRepository.find({'name': 'The Green Mile'});
+      will = await actorRepository.find({'name': 'Will Smith'});
     });
 
     it('should be able to create a node', () {
@@ -81,7 +81,7 @@ main() {
           '(a:Actor {name:"Maggie Denise Quigley", nicknames: ["Maggie Q", "Q"]})'
       );
 
-      var m = await actorRepository.find('name', 'Maggie Denise Quigley');
+      var m = await actorRepository.find({'name': 'Maggie Denise Quigley'});
       expect(m.nicknames).toEqual(['Maggie Q', 'Q']);
     });
 
@@ -93,7 +93,7 @@ main() {
           '(a:Movie {name:"Up", year:2009, releaseDates: [1242172800000,1242432000000]})'
       );
 
-      var movie = await movieRepository.find('name', 'Up');
+      var movie = await movieRepository.find({'name': 'Up'});
       expect(movie.releaseDates).toEqual([
           new DateTime.utc(2009, 05, 13),
           new DateTime.utc(2009, 05, 16),
@@ -325,6 +325,186 @@ main() {
         expect(badBoys2.predecessor).toBe(badBoys);
         expect(badBoys3.predecessor).toBe(badBoys2);
       });
+
+      describe('where', () {
+        it('should be able to filter on a property', () async {
+          var movies = await movieRepository.findAll(where: {'name': 'Avatar'});
+          var movies1 = await movieRepository.findAll(where: {'name': Is.equalTo('Avatar')});
+          var movies2 = await movieRepository.findAll(where: {'name': IS == 'Avatar'});
+
+          expect(movies.length).toEqual(1);
+          expect(movies.first.name).toEqual('Avatar');
+          expect(movies1).toHaveSameProps(movies);
+          expect(movies2).toHaveSameProps(movies);
+        });
+
+        it('should be able to filter on what a property is not', () async {
+          var movies = await movieRepository.findAll(where: {'name': Is.not('Avatar')});
+
+          expect(movies.length).toEqual(5);
+          expect(movies.map((m) => m.name).toList()..sort()).toEqual([
+              'Bad Boys',
+              'Bad Boys 3',
+              'Bad Boys II',
+              'Fury',
+              'The Green Mile'
+          ]);
+        });
+
+        it('should be able to filter on existense of a property', () async {
+          var movies = await movieRepository.findAll(where: {'year': Do.exist});
+
+          expect(movies.length).toEqual(5);
+          expect(movies.map((m) => m.name).toList()..sort()).toEqual([
+              'Avatar',
+              'Bad Boys',
+              'Bad Boys II',
+              'Fury',
+              'The Green Mile'
+          ]);
+        });
+
+        it('should be able to filter on absense of a property', () async {
+          var movies = await movieRepository.findAll(where: {'year': Do.notExist});
+
+          expect(movies.length).toEqual(1);
+          expect(movies.first.name).toEqual('Bad Boys 3');
+        });
+
+        it('should be able to filter on the existense of a property in a list', () async {
+          var movies = await movieRepository.findAll(where: {'name': Is.inList(['Avatar', 'Fury'])});
+
+          expect(movies.length).toEqual(2);
+          expect(movies.map((m) => m.name).toList()..sort()).toEqual([
+              'Avatar',
+              'Fury',
+          ]);
+        });
+
+        it('should be able to filter on the absense of a property in a list', () async {
+          var movies = await movieRepository.findAll(
+              where: {'name': Is.notInList(['Avatar', 'Fury'])}
+          );
+
+          expect(movies.length).toEqual(4);
+          expect(movies.map((m) => m.name).toList()..sort()).toEqual([
+              'Bad Boys',
+              'Bad Boys 3',
+              'Bad Boys II',
+              'The Green Mile',
+          ]);
+        });
+
+        it('should be able to filter properties less than', () async {
+          var movies = await movieRepository.findAll(where: {'year': Is.lessThan(2009)});
+          var movies1 = await movieRepository.findAll(where: {'year': IS < 2009});
+
+          expect(movies.length).toEqual(3);
+          expect(movies.map((m) => m.year).toList()..sort()).toEqual([
+              1995,
+              1999,
+              2003,
+          ]);
+          expect(movies1).toHaveSameProps(movies);
+        });
+
+        it('should be able to filter properties less than or equal to', () async {
+          var movies = await movieRepository.findAll(where: {'year': Is.lessThanOrEqualTo(2009)});
+          var movies1 = await movieRepository.findAll(where: {'year': IS <= 2009});
+
+          expect(movies.length).toEqual(4);
+          expect(movies.map((m) => m.year).toList()..sort()).toEqual([
+              1995,
+              1999,
+              2003,
+              2009,
+          ]);
+          expect(movies1).toHaveSameProps(movies);
+        });
+
+        it('should be able to filter properties greather than', () async {
+          var movies = await movieRepository.findAll(where: {'year': Is.greaterThan(2009)});
+          var movies1 = await movieRepository.findAll(where: {'year': IS > 2009});
+
+          expect(movies.length).toEqual(1);
+          expect(movies.map((m) => m.year).toList()..sort()).toEqual([
+              2014,
+          ]);
+          expect(movies1).toHaveSameProps(movies);
+        });
+
+        it('should be able to filter properties greather than or equal to', () async {
+          var movies = await movieRepository.findAll(where: {'year': Is.greaterThanOrEqualTo(2009)});
+          var movies1 = await movieRepository.findAll(where: {'year': IS >= 2009});
+
+          expect(movies.length).toEqual(2);
+          expect(movies.map((m) => m.year).toList()..sort()).toEqual([
+              2009,
+              2014,
+          ]);
+          expect(movies1).toHaveSameProps(movies);
+        });
+
+        it('should be able to negate other filters', () async {
+          var movies = await movieRepository.findAll(where: {'year': Is.not(IS > 2009)});
+
+          expect(movies.length).toEqual(4);
+          expect(movies.map((m) => m.year).toList()..sort()).toEqual([
+              1995,
+              1999,
+              2003,
+              2009,
+          ]);
+
+          movies = await movieRepository.findAll(
+              where: {'name': Is.not(Is.inList(['Avatar', 'Fury']))}
+          );
+
+          expect(movies.length).toEqual(4);
+          expect(movies.map((m) => m.name).toList()..sort()).toEqual([
+              'Bad Boys',
+              'Bad Boys 3',
+              'Bad Boys II',
+              'The Green Mile',
+          ]);
+        });
+
+        it('should be able to filter on a regex', () async {
+          var movies = await movieRepository.findAll(
+              where: {'name': Do.match('Bad.*')}
+          );
+
+          expect(movies.length).toEqual(3);
+          expect(movies.map((m) => m.name).toList()..sort()).toEqual([
+              'Bad Boys',
+              'Bad Boys 3',
+              'Bad Boys II',
+          ]);
+        });
+
+        it('should be able to combine filters', () async {
+          var movies = await movieRepository.findAll(
+              where: {'name': Do.match('Bad.*'), 'year': IS > 2000}
+          );
+
+          expect(movies.length).toEqual(1);
+          expect(movies.map((m) => m.name).toList()..sort()).toEqual([
+              'Bad Boys II',
+          ]);
+
+          movies = await movieRepository.findAll(
+              where: {'name': Is.not('Avatar'), 'year': Do.exist}
+          );
+
+          expect(movies.length).toEqual(4);
+          expect(movies.map((m) => m.name).toList()..sort()).toEqual([
+              'Bad Boys',
+              'Bad Boys II',
+              'Fury',
+              'The Green Mile'
+          ]);
+        });
+      });
     });
 
     describe('cypher', () {
@@ -337,38 +517,38 @@ main() {
     });
 
     it('should ignore values that have the same name as a method', () async {
-      var entity = await specialsRepository.find('method', 'Value on method');
+      var entity = await specialsRepository.find({'method': 'Value on method'});
 
       expect(entity.method).toBeA(Function);
     });
 
     it('should ignore values that are private and only have a public getter', () async {
-      var entity = await specialsRepository.find('private', 5);
+      var entity = await specialsRepository.find({'private': 5});
 
       expect(entity.private).toEqual(10);
     });
 
     it('should overwrite default values', () async {
-      var entity = await specialsRepository.find('defaultValue', 'changed');
+      var entity = await specialsRepository.find({'defaultValue': 'changed'});
 
       expect(entity.defaultValue).toEqual('changed');
     });
 
     it('should be able to set private values that have a getter and a setter', () async {
-      var entity = await specialsRepository.find('gettersAndSetters', 5);
+      var entity = await specialsRepository.find({'gettersAndSetters': 5});
 
       expect(entity.gettersAndSetters).toEqual(4);
     });
 
     it('should ignore properties of wrong type', () async {
-      var entity = await specialsRepository.find('integer', 'String');
+      var entity = await specialsRepository.find({'integer': 'String'});
 
       expect(entity.id).toBeNull();
       expect(entity.integer).toBeNull();
     });
 
     it('should be able to set via a setter', () async {
-      var entity = await specialsRepository.find('setter', 'set');
+      var entity = await specialsRepository.find({'setter': 'set'});
 
       expect(entity.withSetter).toEqual('set');
     });

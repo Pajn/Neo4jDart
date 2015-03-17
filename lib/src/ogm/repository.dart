@@ -20,17 +20,38 @@ class Repository<T> {
     db.cypher(query, parameters, resultDataContents)
       .then(_instantiate(_t));
 
-  Future<T> find(property, value, {int maxDepth: 1}) =>
-    findAll(property: property, equals: value, limit: 1, maxDepth: maxDepth)
+  Future<T> find(Map where, {int maxDepth: 1}) =>
+    findAll(where: where, limit: 1, maxDepth: maxDepth)
       .then((result) => result.isEmpty ? null : result.first);
 
-  Future<List<T>> findAll({String property, equals, int limit, int skip: 0, int maxDepth: 0}) {
+  Future<List<T>> findAll({Map where, int limit, int skip: 0, int maxDepth: 0}) {
     var filterQuery = '';
-    if (property != null && equals != null) {
-      filterQuery = 'Where n.$property = {value}';
-    } else if (property != null) {
-      filterQuery = 'Where has(n.$property)';
+    var parameters;
+
+    if (where != null && where.isNotEmpty) {
+      var filters = [];
+      var index = 0;
+      parameters = {};
+
+      where.forEach((property, value) {
+
+        if (value is Is) {
+          filters.add(value.check('n.$property', '{v$index}'));
+          value = value.value;
+        } else {
+          filters.add('n.$property = {v$index}');
+        }
+
+        if (value != null) {
+          parameters['v$index'] = value;
+        }
+
+        index++;
+      });
+
+      filterQuery = 'Where ' + filters.join(' AND ');
     }
+
     var skipQuery = skip > 0 ? 'Skip $skip' : '';
     var limitQuery = limit != null ? 'Limit $limit' : '';
 
@@ -41,7 +62,7 @@ class Repository<T> {
       $skipQuery $limitQuery
     ''';
 
-    return cypher(query, {'value': equals}, ['graph', 'row']);
+    return cypher(query, parameters, ['graph', 'row']);
   }
 
   Future<T> get(int id, {int maxDepth: 1}) =>
