@@ -4,7 +4,7 @@ const defaultConstructor = const Symbol('');
 final _objects = new Expando();
 final _hasRelation = new Expando();
 
-final _Edge = reflectType(Relation);
+final _Relation = reflectType(Relation);
 final _DateTime = reflectType(DateTime);
 final _String = reflectType(String);
 final _bool = reflectType(bool);
@@ -99,7 +99,7 @@ bool _isEdgeField(DeclarationMirror dm) {
   if (_isAssignableTo(_Iterable, field)) {
     field = field.typeArguments.first;
   }
-  if (field.isAssignableTo(_Edge)) {
+  if (field.isAssignableTo(_Relation)) {
     return true;
   }
 
@@ -118,7 +118,7 @@ Object _findOtherObject(Map objects, Map properties, Object start, Symbol field,
   if (otherClass.isAssignableTo(_Iterable)) {
     otherClass = otherClass.typeArguments.first;
   }
-  if (otherClass.isAssignableTo(_Edge)) {
+  if (otherClass.isAssignableTo(_Relation)) {
     otherClass = otherClass.superclass.declarations[edgeField].type;
   }
   _instantiateObject(objects, otherClass, properties, otherId);
@@ -328,11 +328,11 @@ Iterable<Relation> _getEdges(ClassMirror cm, start) {
       if (object is Iterable) {
         return object.map((edge) => edge
           ..start = start
-          ..label = _findLabel(dm));
+          .._label = _findLabel(dm));
       } else {
         return [object
           ..start = start
-          ..label = _findLabel(dm)
+          .._label = _findLabel(dm)
         ];
       }
     })
@@ -348,7 +348,7 @@ Iterable<Relation> _getEdges(ClassMirror cm, start) {
           .map(((end) => new Relation()
             ..start = start
             ..end = end
-            ..label = _findLabel(dm))
+            .._label = _findLabel(dm))
           )
           .toList();
       } else {
@@ -356,7 +356,7 @@ Iterable<Relation> _getEdges(ClassMirror cm, start) {
           new Relation()
             ..start = start
             ..end = object
-            ..label = _findLabel(dm)
+            .._label = _findLabel(dm)
         ];
       }
     })

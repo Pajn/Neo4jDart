@@ -14,5 +14,5 @@ class Relation<S, E> {
   /// The node the relations ends or enters into. (start)-[:relation]->(end)
   E end;
   /// The label of this relation, inferred from the field name of the start node
-  String get label() => _label;
+  String get label => _label;
 }
