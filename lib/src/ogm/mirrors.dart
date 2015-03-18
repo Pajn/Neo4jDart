@@ -108,7 +108,13 @@ bool _isEdgeField(DeclarationMirror dm) {
 
 Object _findOtherObject(Map objects, Map properties, Object start, Symbol field, Symbol edgeField,
                         int otherId) {
-  ClassMirror otherClass = start.type.declarations[field].type;
+  ClassMirror otherClass;
+  var startField = start.type.declarations[field];
+  if (startField is VariableMirror) {
+    otherClass = startField.type;
+  } else if (startField is MethodMirror && startField.isGetter) {
+    otherClass = startField.returnType;
+  }
   if (otherClass.isAssignableTo(_Iterable)) {
     otherClass = otherClass.typeArguments.first;
   }
@@ -343,7 +349,8 @@ Iterable<Edge> _getEdges(ClassMirror cm, start) {
             ..start = start
             ..end = end
             ..label = _findLabel(dm))
-          );
+          )
+          .toList();
       } else {
         return [
           new Edge()

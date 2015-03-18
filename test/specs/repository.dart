@@ -155,6 +155,24 @@ main() {
       ''');
     });
 
+    it('should be able to create a relation from a collection from a getter', () async {
+      var special = new SpecialCases();
+      specialsRepository.store(special);
+      await specialsRepository.saveChanges();
+
+      will.specials = [special];
+      actorRepository.store(will);
+
+      var query = actorRepository.saveChanges();
+      await expect(query).toHaveWritten('''
+        (ws:Actor {name:"Will Smith"})-[:specials]->(:SpecialCases)
+      ''');
+
+      will = await actorRepository.find({'name': 'Will Smith'});
+      expect(will.specials.length).toEqual(1);
+      expect(will.specials.first).toBeA(SpecialCases);
+    });
+
     it('should be able to update a node', () {
       avatar.name = 'Profile';
       movieRepository.store(avatar);

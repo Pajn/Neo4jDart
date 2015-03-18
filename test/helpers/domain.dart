@@ -32,6 +32,10 @@ class Person {
 
 class Actor extends Person {
   List<ActedIn> actedIn;
+
+  var _special;
+  Iterable<SpecialCases> get specials => _special;
+  set specials(value) => _special = value;
 }
 
 class SpecialCases {

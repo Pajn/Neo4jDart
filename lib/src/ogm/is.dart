@@ -34,11 +34,9 @@ class Is {
 
 const IS = const Is();
 
-class Do extends Is {
+abstract class Do extends Is {
   static const exist = const Is('has({field})');
   static const notExist = const Is('not(has({field}))');
-
-  const Do(filter, [value]) : super(filter, value);
 
   static Is match(String regexp) => new Is('{field} =~ {value}', regexp);
 }
