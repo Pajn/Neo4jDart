@@ -60,10 +60,10 @@ class SpecialCases {
   }
 }
 
-class ActedIn extends Edge<Actor, Movie> {
+class ActedIn extends Relation<Actor, Movie> {
   String role;
 }
 
-class Role extends Edge<Movie, Actor> {
+class Role extends Relation<Movie, Actor> {
   String role;
 }

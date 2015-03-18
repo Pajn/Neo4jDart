@@ -1,6 +1,20 @@
 part of neo4j_dart.ogm;
 
+/**
+ * A repository backed by the Neo4j database.
+ *
+ * The repository abstracts the database by providing methods for finding or storing objects
+ * of the generic type T. It also provides a [cypher] method for more advanced queries.
+ *
+ *
+ * ## Usage
+ *
+ * The repository needs a type of the objects it will work with. It can either be specified while
+ * instantiating an object with `var movieRepository = new Repository<Movie>();` or by inheriting
+ * the [Repository] class with `class MovieRepository extends Repository<Movie> {}`.
+ */
 class Repository<T> {
+  /// The database this repository works with
   final Neo4j db;
 
   final _t = reflectClass(T);
@@ -8,22 +22,67 @@ class Repository<T> {
   final Map<int, Map> _toUpdate = {};
   final List<int> _toDelete = [];
   final List<int> _toDeleteWithRelations = [];
-  final List<Edge> _edgesToCreate = [];
+  final List<Relation> _edgesToCreate = [];
   final Map<int, Map> _edgesToUpdate = {};
   final List<int> _edgesToDelete = [];
 
+  /// The label which nodes in the database created using this repository will have
   get label => _findLabel(_t);
 
   Repository(this.db);
 
-  Future<List<T>> cypher(String query, [Map<String, dynamic> parameters, List<String> resultDataContents]) =>
+  /**
+   *
+   */
+  Future<List<T>> cypher(String query, [Map<String, dynamic> parameters, List<String> resultDataContents = const ['graph']]) =>
     db.cypher(query, parameters, resultDataContents)
       .then(_instantiate(_t));
 
+  /**
+   * Finds a single node by the [where] [Map].
+   *
+   * For more info on [where] see [findAll].
+   * Use [maxDepth] to specify how deep relations should be resolved.
+   *
+   * Example:
+   *     var movie = await movieRepository.find({'name': 'Avatar'});
+   */
   Future<T> find(Map where, {int maxDepth: 1}) =>
     findAll(where: where, limit: 1, maxDepth: maxDepth)
       .then((result) => result.isEmpty ? null : result.first);
 
+  /**
+   * Finds all nodes of th repository Type.
+   *
+   * The results can be filtered by passing a [Map] for [where]
+   * For filtering pass the property name as key and the required value or matcher as a value.
+   * When multiple properties have matchers, all is required to match a node.
+   * For documentation on matchers see [Is] and [Do]
+   *
+   * The results can be paginated using the [limit] parameter which defines how many nodes will
+   * be found and [skip] which defines the offset.
+   *
+   * Relations can be resolved by specifying a positive value to the [maxDepth] parameter.
+   *
+   * Examples:
+   *     // Finds all movies released in 2014
+   *     movieRepository.findAll(where: {'year': 2014})
+   *
+   *     // Finds all movies released since 2010
+   *     movieRepository.findAll(where: {'year': IS >= 2010})
+   *
+   *     // Finds all movies released since 2010 with a name that begin on the letter A
+   *     movieRepository.findAll(where: {
+   *       'name': Do.match('A.*')
+   *       'year': IS >= 2010,
+   *     })
+   *
+   *     // Show page 2 with 10 movies per page
+   *     movieRepository.findAll(limit: 10, skip: 10)
+   *
+   *     // Finds all movies released in 2014 and there direct relations
+   *     movieRepository.findAll(where: {'year': 2014}, maxDepth: 1)
+   */
   Future<List<T>> findAll({Map where, int limit, int skip: 0, int maxDepth: 0}) {
     var filterQuery = '';
     var parameters;
@@ -65,6 +124,11 @@ class Repository<T> {
     return cypher(query, parameters, ['graph', 'row']);
   }
 
+  /**
+   * Gets a single node by its [id].
+   *
+   * Use [maxDepth] to specify how deep relations should be resolved.
+   */
   Future<T> get(int id, {int maxDepth: 1}) =>
     cypher('''
       Match (n:$label)
@@ -73,6 +137,13 @@ class Repository<T> {
     ''', {'id': id}, ['graph', 'row'])
       .then((result) => result.isEmpty ? null : result.first);
 
+  /**
+   * Marks the node for deletion.
+   *
+   * Use [saveChanges] to persist the deletion.
+   * By default relations will not be deleted and the deletion will be rejected by the database
+   * if relations to the node exist. Set [deleteRelations] to *true* to also delete relations.
+   */
   void delete(T entity, {bool deleteRelations: false}) {
     if (deleteRelations) {
       _toDeleteWithRelations.add(entityId(entity));
@@ -81,6 +152,13 @@ class Repository<T> {
     }
   }
 
+  /**
+   * Marks the node for creation or update.
+   *
+   * Use [saveChanges] to persist the changes to [entity].
+   * For relations to be created the other node must exist in the database or marked for creation
+   * in the same repository instance.
+   */
   void store(T entity) {
     if (entityId(entity) == null) {
       _toCreate.add(entity);
@@ -102,6 +180,11 @@ class Repository<T> {
     }
   }
 
+  /**
+   * Persist changes to the database.
+   *
+   * The changes should have been queued using the [delete] or [store] methods.
+   */
   Future saveChanges() async {
     var transaction = [];
 

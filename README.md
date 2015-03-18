@@ -3,6 +3,7 @@
 [![Coverage Status](https://coveralls.io/repos/Pajn/Neo4jDart/badge.svg)](https://coveralls.io/r/Pajn/Neo4jDart)
 
 A Neo4j driver for Dart.
+Both a simple driver and an OGM (Object Graph Mapper) is provides in separate libraries.
 
 ## Usage
 A simple usage example:
@@ -18,10 +19,12 @@ main() async {
         'dart': { 'name': 'Dart' },
         'neo4j': { 'name': 'Neo4j' },
       });
-  
+
   print('successfully created two nodes with id ${result['data'][0]['row'].join(' and ')}');
 }
 ```
+
+See the example or test folder for more example usages.
 
 ## Features and bugs
 Please file feature requests and bugs at the [issue tracker][tracker].

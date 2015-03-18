@@ -1,3 +1,6 @@
+/**
+ * A thin Neo4j driver for running Cypher queries though the REST API
+ */
 library neo4j_dart;
 
 import 'dart:async';

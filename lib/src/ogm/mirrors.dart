@@ -4,7 +4,7 @@ const defaultConstructor = const Symbol('');
 final _objects = new Expando();
 final _hasRelation = new Expando();
 
-final _Edge = reflectType(Edge);
+final _Edge = reflectType(Relation);
 final _DateTime = reflectType(DateTime);
 final _String = reflectType(String);
 final _bool = reflectType(bool);
@@ -312,7 +312,7 @@ TypeMirror _collectionType(DeclarationMirror dm) {
 }
 
 
-Iterable<Edge> _getEdges(ClassMirror cm, start) {
+Iterable<Relation> _getEdges(ClassMirror cm, start) {
   var im = reflect(start);
 
   var relations = _getReadableFields(cm).where((dm) {
@@ -345,7 +345,7 @@ Iterable<Edge> _getEdges(ClassMirror cm, start) {
       var object = im.getField(dm.simpleName).reflectee;
       if (object is Iterable) {
         return object
-          .map(((end) => new Edge()
+          .map(((end) => new Relation()
             ..start = start
             ..end = end
             ..label = _findLabel(dm))
@@ -353,7 +353,7 @@ Iterable<Edge> _getEdges(ClassMirror cm, start) {
           .toList();
       } else {
         return [
-          new Edge()
+          new Relation()
             ..start = start
             ..end = object
             ..label = _findLabel(dm)
@@ -377,7 +377,7 @@ Iterable<int> _removedRelations(Object object) {
 
       if (value is Iterable) {
         return value.every((edge) {
-          if (edge is Edge) {
+          if (edge is Relation) {
             return entityId(edge) != relation[#id];
           }
           return entityId(edge) != relation[#entity];
