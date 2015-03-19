@@ -3,7 +3,7 @@ part of neo4j_dart.ogm;
 /**
  * Base class for relation objects.
  *
- * If values should be specified on the relations rather than any of the nodes the model class
+ * If values should be specified on the relations rather than any of the nodes, the model class
  * should inherit [Relation]
  */
 class Relation<S, E> {

@@ -1,6 +1,6 @@
 part of neo4j_dart.ogm;
 
-const defaultConstructor = const Symbol('');
+const _defaultConstructor = const Symbol('');
 final _objects = new Expando();
 final _hasRelation = new Expando();
 
@@ -65,7 +65,7 @@ bool _canSetType(Map<Symbol, DeclarationMirror> declarations, Symbol field, Type
 
 void _instantiateObject(Map objects, ClassMirror cm, Map properties, int id) {
   if (!objects.containsKey(id)) {
-    var object = cm.newInstance(defaultConstructor, []);
+    var object = cm.newInstance(_defaultConstructor, []);
     var declarations = _getDeclarations(cm);
 
     properties.forEach((property, value) {

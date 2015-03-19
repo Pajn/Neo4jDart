@@ -3,7 +3,7 @@
 [![Coverage Status](https://coveralls.io/repos/Pajn/Neo4jDart/badge.svg)](https://coveralls.io/r/Pajn/Neo4jDart)
 
 A Neo4j driver for Dart.
-Both a simple driver and an OGM (Object Graph Mapper) is provides in separate libraries.
+Both a simple driver and an OGM (Object Graph Mapper) is provided in separate libraries.
 
 ## Usage
 A simple usage example:
@@ -24,7 +24,7 @@ main() async {
 }
 ```
 
-See the example or test folder for more example usages.
+See the example or test folder for more example usages including examples on the OGM.
 
 ## Features and bugs
 Please file feature requests and bugs at the [issue tracker][tracker].

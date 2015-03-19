@@ -32,9 +32,12 @@ class Repository<T> {
   Repository(this.db);
 
   /**
+   * Executes a custom cypher query, the results will be parsed as the type [T] of this repository.
    *
+   * If you want the raw results you should instead use the cypher method in [db].
    */
-  Future<List<T>> cypher(String query, [Map<String, dynamic> parameters, List<String> resultDataContents = const ['graph']]) =>
+  Future<List<T>> cypher(String query, [Map<String, dynamic> parameters,
+                                        List<String> resultDataContents = const ['graph']]) =>
     db.cypher(query, parameters, resultDataContents)
       .then(_instantiate(_t));
 
