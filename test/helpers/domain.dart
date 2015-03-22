@@ -1,3 +1,5 @@
+library test_domain;
+
 import 'dart:async';
 import 'package:neo4j_dart/ogm.dart';
 
@@ -22,6 +24,10 @@ class Movie {
 
   @ReverseOf(#actedIn)
   Iterable<ActedIn> cast;
+}
+
+class SpecificMovie extends Movie {
+  String genre;
 }
 
 class Person {

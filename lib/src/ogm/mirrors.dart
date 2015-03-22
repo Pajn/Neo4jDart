@@ -65,6 +65,11 @@ bool _canSetType(Map<Symbol, DeclarationMirror> declarations, Symbol field, Type
 
 void _instantiateObject(Map objects, ClassMirror cm, Map properties, int id) {
   if (!objects.containsKey(id)) {
+    if (properties.containsKey('@class') && properties.containsKey('@library')) {
+      var library = currentMirrorSystem().findLibrary(MirrorSystem.getSymbol(properties['@library']));
+      cm = library.declarations[MirrorSystem.getSymbol(properties['@class'])];
+    }
+
     var object = cm.newInstance(_defaultConstructor, []);
     var declarations = _getDeclarations(cm);
 
@@ -273,8 +278,9 @@ Iterable<DeclarationMirror> _getReadableFields(ClassMirror cm) =>
         (dm is MethodMirror && dm.isGetter)
     ));
 
-Map _getProperties(ClassMirror cm, object) {
+Map _getProperties(object) {
   var properties = {};
+  var cm = reflectClass(object.runtimeType);
   var im = reflect(object);
 
   for (var dm in _getReadableFields(cm)) {
@@ -293,6 +299,9 @@ Map _getProperties(ClassMirror cm, object) {
       properties[_findLabel(dm)] = object;
     }
   }
+
+  properties['@library'] = MirrorSystem.getName(cm.owner.simpleName);
+  properties['@class'] = MirrorSystem.getName(cm.simpleName);
 
   return properties;
 }
@@ -397,7 +406,7 @@ _setId(Object object, int id, [ClassMirror cm]) {
   }
 
   // If the object contains an id variable or setter it's set to the database id
-  if (_canSetType(cm.declarations, #id, int)) {
+  if (_canSetType(_getDeclarations(cm), #id, int)) {
     object.id = id;
   }
 }

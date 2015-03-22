@@ -173,6 +173,15 @@ main() {
       expect(will.specials.first).toBeA(SpecialCases);
     });
 
+    it('should save class and library information', () {
+      movieRepository.store(cars);
+
+      var query = movieRepository.saveChanges();
+      return expect(query).toHaveWritten(
+          '(a:Movie {name:"Cars", year:2006, `@class`: "Movie", `@library`: "test_domain"})'
+      );
+    });
+
     it('should be able to update a node', () {
       avatar.name = 'Profile';
       movieRepository.store(avatar);
@@ -313,6 +322,13 @@ main() {
         expect(badBoys1.sequel.predecessor).toBe(badBoys1);
         expect(badBoys1.sequel.sequel.sequel).toBeNull();
         expect(badBoys1.predecessor).toBeNull();
+      });
+
+      it('should create an instance of the same class the was saved', () async {
+        var f = await movieRepository.get(theGreenMile.id);
+
+        expect(f).toBeA(SpecificMovie);
+        expect(f.genre).toEqual("Drama");
       });
     });
 

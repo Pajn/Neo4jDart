@@ -11,7 +11,8 @@ setUpTestData() =>
         Create (:Language {name:"Dart"}),
                (:Database {name:"Neo4j"}),
                (:Movie {name:"Fury", year:2014}),
-               (:Movie {name:"The Green Mile", year:1999}),
+               (:Movie {name:"The Green Mile", year:1999, genre:"Drama",
+                        `@class`: "SpecificMovie", `@library`: "test_domain"}),
                (:Movie {name:"Avatar", year:2009})
                  -[:centralCharacter {role: "Jake Sully"}]->
                (:Actor {name: "Sam Worthington", birthDate: 207792000000}),

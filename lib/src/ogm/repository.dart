@@ -166,7 +166,7 @@ class Repository<T> {
     if (entityId(entity) == null) {
       _toCreate.add(entity);
     } else {
-      _toUpdate[entityId(entity)] = _getProperties(_t, entity);
+      _toUpdate[entityId(entity)] = _getProperties(entity);
     }
 
     _edgesToDelete.addAll(_removedRelations(entity));
@@ -193,7 +193,7 @@ class Repository<T> {
 
     _toCreate.forEach((entity) =>
       transaction.add(new Statement('Create (n:$label {e}) Return id(n)', {
-          'e': _getProperties(_t, entity)
+          'e': _getProperties(entity)
       })));
 
     _toUpdate.forEach((id, entity) =>
@@ -241,7 +241,7 @@ class Repository<T> {
         Create (h)-[e:${edge.label} {e}]->(t)
         Return id(e)
       ''', {
-          'e': _getProperties(reflectType(edge.runtimeType), edge),
+          'e': _getProperties(edge),
           'h': entityId(edge.start),
           't': entityId(edge.end),
       }));
