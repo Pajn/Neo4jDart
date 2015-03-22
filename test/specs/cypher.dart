@@ -1,3 +1,5 @@
+library cypher_spec;
+
 import '../helpers.dart';
 
 main() {

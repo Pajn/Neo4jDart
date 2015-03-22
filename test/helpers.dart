@@ -1,3 +1,5 @@
+library test_helpers;
+
 import 'package:neo4j_dart/neo4j_dart.dart';
 import 'package:neo4j_dart/ogm.dart';
 import 'helpers/guinness.dart';

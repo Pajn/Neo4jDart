@@ -70,7 +70,7 @@ void _instantiateObject(Map objects, ClassMirror cm, Map properties, int id) {
 
     properties.forEach((property, value) {
       var field = new Symbol(property);
-      var type;
+
       if (value is List && value.isNotEmpty && value.first is int &&
           _canSetType(declarations, field, <DateTime>[].runtimeType)) {
         object.setField(field, value.map((date) =>

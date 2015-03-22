@@ -1,4 +1,4 @@
-library node_repository_spec;
+library repository_spec;
 
 import '../helpers.dart';
 import '../helpers/domain.dart';

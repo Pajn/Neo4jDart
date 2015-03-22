@@ -1,3 +1,5 @@
+library transaction_spec;
+
 import '../helpers.dart';
 
 main() {
