@@ -51,13 +51,12 @@ main() {
     });
 
     it('should be able to query the database for a node result', () {
-      var query = db.cypher('Match (m:Movie) Return m');
+      var query = db.cypher('Match (m:Movie) Where m.`@class` IS NULL Return m');
 
       return expect(query).toReturnNodes([{
         'm': {
           'data': [
             {'name':'Fury', 'year':2014},
-            {'name':'The Green Mile', 'year':1999},
             {'name':'Avatar', 'year':2009},
             {'name':'Bad Boys', 'year':1995},
             {'name':'Bad Boys II', 'year':2003},
