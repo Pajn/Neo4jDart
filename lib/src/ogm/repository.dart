@@ -171,7 +171,7 @@ class Repository<T> {
 
     _edgesToDelete.addAll(_removedRelations(entity));
 
-    var edges = _getEdges(_t, entity)
+    var edges = _getEdges(entity)
       .where((e) => entityId(e.end) != null || _toCreate.contains(e.end));
 
     for (var edge in edges) {
