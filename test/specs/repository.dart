@@ -14,9 +14,11 @@ main() {
     Movie avatar, badBoys, cars, cars2, fury, theGreenMile, up;
 
     beforeEach(() async {
-      actorRepository = new Repository<Actor>(db);
-      movieRepository = new MovieRepository(db);
-      specialsRepository = new Repository<SpecialCases>(db);
+      var session = new DbSession(db);
+
+      actorRepository = new Repository<Actor>(session);
+      movieRepository = new MovieRepository(session);
+      specialsRepository = new Repository<SpecialCases>(session);
 
       cars = new Movie()
         ..name = 'Cars'
@@ -104,7 +106,7 @@ main() {
       actorRepository.store(owen);
 
       var query = actorRepository.saveChanges();
-      return expect(query).toHaveWritten('(a:Actor {name:"Owen Wilson"})');
+      return expect(query).toHaveWritten('(a:Actor:Person {name:"Owen Wilson"})');
     });
 
     it('should be able to create multiple nodes with relations', () {
@@ -128,7 +130,7 @@ main() {
 
       var query = actorRepository.saveChanges();
       return expect(query).toHaveWritten('''
-        (owen:Actor {name:"Owen Wilson"}),
+        (owen:Actor:Person {name:"Owen Wilson"}),
         (cars:Movie {name:"Cars", year:2006}),
         (cars2:Movie {name:"Cars 2", year:2011}),
         (owen)-[:actedIn {role: "Lightning McQueen"}]->(cars),
