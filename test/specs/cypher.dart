@@ -21,6 +21,20 @@ main() {
       );
     });
 
+    it('should handle UTF-8', () async {
+      await db.cypher('''
+        Create (:Movie {name:"Tomten är far till alla barnen"})
+      ''');
+
+      var query = db.cypher('''
+        Match (m:Movie {name:"Tomten är far till alla barnen"}) Return m
+      ''');
+
+      await expect(query).toReturnNodes([{
+        'm': { 'data': [{'name': 'Tomten är far till alla barnen'}]}
+      }]);
+    });
+
     it('should support parameterized queries', () async {
       var query = db.cypher('''
         Create (js:Language {js})

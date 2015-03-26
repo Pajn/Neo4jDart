@@ -24,12 +24,13 @@ class Neo4j {
 
     var response = await http.post('$host/db/data/transaction/commit', headers: {
         'Accept': 'application/json; charset=UTF-8',
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json; charset=UTF-8',
       },
       body: body
     );
 
-    response = JSON.decode(response.body);
+    body = UTF8.decode(response.bodyBytes);
+    response = JSON.decode(body);
 
     if (response['errors'].isNotEmpty) {
       throw response;
