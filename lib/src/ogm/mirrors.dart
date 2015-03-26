@@ -201,6 +201,8 @@ _instantiateGraph(Map<int, InstanceMirror> objects, ClassMirror cm, Map<String, 
     var startFieldName = new Symbol(relation['type']);
     var endFieldName;
 
+    if (start == null && end == null) continue;
+
     if (end == null) {
       end = _findOtherObject(objects, notInstantiated[endId], start, startFieldName, #end, endId);
     }
