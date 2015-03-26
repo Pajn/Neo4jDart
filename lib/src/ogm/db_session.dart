@@ -1,6 +1,10 @@
 part of neo4j_dart.ogm;
 
+/**
+ * Keeps track of entities and there changes on a single database connection
+ */
 class DbSession {
+  /// The database the session is working on
   final Neo4j db;
 
   final _entities = new Expando();
@@ -16,6 +20,14 @@ class DbSession {
 
   DbSession(this.db);
 
+  /**
+   * Attaches an entity to the session.
+   *
+   * By attaching an entity the session knows about the object and will call update instead of
+   * create on store and allow deleting. This does normally don't need to be called manually but
+   * can be called in case an object is created in other ways that through the session or a
+   * [Repository] attached to a session.
+   */
   void attach(entity, id) {
     _entities[entity] = id;
   }

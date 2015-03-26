@@ -19,8 +19,8 @@ class Repository<T> {
 
   final _t = reflectClass(T);
 
-  /// The label which nodes in the database created using this repository will have
-  get label => _findLabel(_t);
+  /// The label which nodes is queried from
+  String get label => _findLabel(_t);
 
   Repository(this.session);
 
