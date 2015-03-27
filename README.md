@@ -28,5 +28,7 @@ See the example or test folder for more example usages including examples on the
 
 ## Features and bugs
 Please file feature requests and bugs at the [issue tracker][tracker].
+See [waffle][waffle] for current work status.
 
 [tracker]: https://github.com/Pajn/Neo4jDart/issues
+[waffle]: https://waffle.io/Pajn/Neo4jDart

@@ -9,7 +9,7 @@ final _bool = reflectType(bool);
 final _num = reflectType(num);
 final _Iterable = reflectType(Iterable);
 
-class DbRelation {
+class _DbRelation {
   Symbol field;
   int edgeId;
   int entityId;

@@ -10,13 +10,24 @@ class DbSession {
   final _entities = new Expando();
   final _hasRelation = new Expando();
 
-  final List _toCreate = [];
-  final Map<int, Map> _toUpdate = {};
-  final List<int> _toDelete = [];
-  final List<int> _toDeleteWithRelations = [];
+  final List<Node> _toCreate = [];
+  final List<Node> _toUpdate = [];
+  final List<Node> _toDelete = [];
+  final List<Node> _toDeleteWithRelations = [];
   final List _edgesToCreate = [];
   final Map<int, Map> _edgesToUpdate = {};
   final List<int> _edgesToDelete = [];
+
+  final _created = new StreamController.broadcast();
+  final _updated = new StreamController.broadcast();
+  final _deleted = new StreamController.broadcast();
+
+  /// A stream of [Node]s that have been created on this session
+  Stream<Node> get onCreated => _created.stream;
+  /// A stream of [Node]s that have been updated on this session
+  Stream<Node> get onUpdated => _updated.stream;
+  /// A stream of [Node]s that have been deleted on this session
+  Stream<Node> get onDeleted => _deleted.stream;
 
   DbSession(this.db);
 
@@ -45,10 +56,15 @@ class DbSession {
   void delete(entity, {bool deleteRelations: false}) {
     if (entityId(entity) == null) throw 'The entity is not known by the session';
 
+    var node = new Node()
+      ..id = entityId(entity)
+      ..labels = _findLabels(entity)
+      ..entity = entity;
+
     if (deleteRelations) {
-      _toDeleteWithRelations.add(entityId(entity));
+      _toDeleteWithRelations.add(node);
     } else {
-      _toDelete.add(entityId(entity));
+      _toDelete.add(node);
     }
   }
 
@@ -59,21 +75,23 @@ class DbSession {
    * For relations to be created the other node must exist in the database or marked for creation
    * in the same repository instance.
    */
-  void store(Object entity, [List<String> labels]) {
-    if (entityId(entity) == null) {
-      if (labels == null) {
-        labels = _findLabels(entity);
-      }
+  void store(entity) {
 
-      _toCreate.add(entity);
+    var node = new Node()
+      ..id = entityId(entity)
+      ..labels = _findLabels(entity)
+      ..entity = entity;
+
+    if (node.id == null) {
+      _toCreate.add(node);
     } else {
-      _toUpdate[entityId(entity)] = _getProperties(entity);
+      _toUpdate.add(node);
     }
 
     _edgesToDelete.addAll(_removedRelations(entity));
 
     var edges = _getEdges(entity)
-      .where((e) => entityId(e.end) != null || _toCreate.contains(e.end));
+      .where((e) => entityId(e.end) != null || _toCreate.any((node) => node.entity == e.end));
 
     for (var edge in edges) {
       if (entityId(edge) == null) {
@@ -92,45 +110,55 @@ class DbSession {
   Future saveChanges() async {
     var transaction = [];
 
-    for (var entity in _toCreate) {
-      var labels = _findLabels(entity);
-      var properties = _getProperties(entity);
+    for (var node in _toCreate) {
+      var properties = _getProperties(node.entity);
 
-      transaction.add(new Statement('Create (n:${labels.join(':')} {e}) Return id(n)', {
+      transaction.add(new Statement('Create (n:${node.labels.join(':')} {e}) Return id(n)', {
         'e': properties
       }));
     }
 
-    _toUpdate.forEach((id, entity) {
+    for (var node in _toUpdate) {
+      var properties = _getProperties(node.entity);
+
       transaction.add(new Statement('Match (n) Where id(n) = {id} Set n = {e}', {
-          'e': entity,
-          'id': id,
+        'e': properties,
+        'id': node.id,
       }));
-    });
+    }
 
     for (var id in _edgesToDelete) {
       transaction.add(new Statement('Match ()-[r]->() Where id(r) = {id} Delete r', { 'id': id }));
     }
 
-    for (var id in _toDelete) {
-      transaction.add(new Statement('Match (n) Where id(n) = {id} Delete n', { 'id': id }));
+    for (var node in _toDelete) {
+      transaction.add(new Statement('Match (n) Where id(n) = {id} Delete n', { 'id': node.id }));
     }
 
-    for (var id in _toDeleteWithRelations) {
+    for (var node in _toDeleteWithRelations) {
       transaction.add(new Statement('''
         Match (n)
         Where id(n) = {id}
         Optional Match (n)-[r]-()
         Delete n, r
-      ''', { 'id': id }));
+      ''', { 'id': node.id }));
     }
 
     var results = await db.cypherTransaction(transaction);
 
     for (var i = 0; i < _toCreate.length; i++) {
-      attach(_toCreate[i], results[i]['data'][0]['row'][0]);
-      _setId(_toCreate[i], results[i]['data'][0]['row'][0]);
+      var entity = _toCreate[i].entity;
+      var id = results[i]['data'][0]['row'][0];
+
+      _toCreate[i].id = id;
+      attach(entity, id);
+      _setId(entity, id);
+      _created.add(_toCreate[i]);
     }
+
+    _toUpdate.forEach(_updated.add);
+    _toDelete.forEach(_deleted.add);
+    _toDeleteWithRelations.forEach(_deleted.add);
 
     _toCreate.clear();
     _toUpdate.clear();
@@ -163,7 +191,7 @@ class DbSession {
   }
 
   void _keepRelation(Object object, Symbol field, int edgeId, [int entityId]) {
-    var relation = new DbRelation()
+    var relation = new _DbRelation()
       ..edgeId = edgeId
       ..entityId = entityId
       ..field = field;
@@ -178,8 +206,13 @@ class DbSession {
   void _instantiateObject(Map objects, ClassMirror cm, Map properties, int id) {
     if (!objects.containsKey(id)) {
       if (properties.containsKey('@class') && properties.containsKey('@library')) {
-        var library = currentMirrorSystem().findLibrary(MirrorSystem.getSymbol(properties['@library']));
-        cm = library.declarations[MirrorSystem.getSymbol(properties['@class'])];
+        var mirrorSystem = currentMirrorSystem();
+        var library = mirrorSystem.findLibrary(MirrorSystem.getSymbol(properties['@library']));
+        var requestedClass = library.declarations[MirrorSystem.getSymbol(properties['@class'])];
+
+        if (requestedClass != null) {
+          cm = requestedClass;
+        }
       }
 
       var object = cm.newInstance(_defaultConstructor, []);

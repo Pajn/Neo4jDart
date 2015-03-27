@@ -1,7 +1,7 @@
 name: neo4j_dart
 description: >
   A Neo4j driver for Dart.
-version: 0.1.1
+version: 0.2.0
 author: Rasmus Eneman <rasmus@eneman.eu>
 homepage: https://github.com/Pajn/Neo4jDart
 dependencies:

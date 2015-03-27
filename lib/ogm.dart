@@ -100,5 +100,6 @@ part 'src/ogm/annotations.dart';
 part 'src/ogm/db_session.dart';
 part 'src/ogm/is.dart';
 part 'src/ogm/mirrors.dart';
+part 'src/ogm/node.dart';
 part 'src/ogm/relation.dart';
 part 'src/ogm/repository.dart';
