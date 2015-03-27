@@ -5,7 +5,7 @@ import '../helpers.dart';
 import '../helpers/domain.dart';
 
 main() {
-  unittestConfiguration.timeout = new Duration(seconds: 2);
+  unittestConfiguration.timeout = new Duration(seconds: 5);
   var db = setUp();
 
   describe('DbSession', () {
