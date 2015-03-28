@@ -25,6 +25,7 @@ class Neo4j {
     var response = await http.post('$host/db/data/transaction/commit', headers: {
         'Accept': 'application/json; charset=UTF-8',
         'Content-Type': 'application/json; charset=UTF-8',
+        'X-Stream': 'true',
       },
       body: body
     );
