@@ -262,7 +262,8 @@ class DbSession {
       node['id'] = int.parse(node['id']);
       var className = MirrorSystem.getName(cm.simpleName);
 
-      if (node['labels'].contains(className)) {
+      if ((node['properties'].containsKey('@class') && node['properties'].containsKey('@library')) ||
+          node['labels'].contains(className)) {
         _instantiateObject(objects, cm, node['properties'], node['id']);
       } else {
         notInstantiated[node['id']] = node['properties'];
