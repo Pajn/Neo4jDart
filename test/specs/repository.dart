@@ -6,18 +6,22 @@ import '../helpers/domain.dart';
 main() {
   var db = setUp();
 
-  describe('repository', () {
+  describe('Repository', () {
+    DbSession session;
     Repository<Actor> actorRepository;
     MovieRepository movieRepository;
+    Repository<Person> personRepository;
     Repository<SpecialCases> specialsRepository;
+    Person anna, peter;
     Actor owen, maggie, will;
     Movie avatar, badBoys, cars, cars2, fury, theGreenMile, up;
 
     beforeEach(() async {
-      var session = new DbSession(db);
+      session = new DbSession(db);
 
       actorRepository = new Repository<Actor>(session);
       movieRepository = new MovieRepository(session);
+      personRepository = new Repository<Person>(session);
       specialsRepository = new Repository<SpecialCases>(session);
 
       cars = new Movie()
@@ -55,6 +59,14 @@ main() {
       fury = await movieRepository.find({'name': 'Fury'});
       theGreenMile = await movieRepository.find({'name': 'The Green Mile'});
       will = await actorRepository.find({'name': 'Will Smith'});
+
+      anna = new Person()
+        ..name = 'Anna'
+        ..favoriteMovie = avatar;
+
+      peter = new Person()
+        ..name = 'Peter'
+        ..favoriteMovie = avatar;
     });
 
     it('should be able to create a node', () {
@@ -155,6 +167,20 @@ main() {
                                   (ws)-[:actedIn]->(:Movie {name: "Bad Boys II"}),
                                   (ws)-[:actedIn]->(:Movie {name: "Bad Boys 3"})
       ''');
+    });
+
+    it('should be able to handle one-to-many relations', () async {
+      session..store(anna)..store(peter);
+      await session.saveChanges();
+
+      anna = await personRepository.find({'name': 'Anna'}, maxDepth: 2);
+
+      anna.favoriteMovie.favoredBy.sort((a, b) => a.name.compareTo(b.name));
+
+      expect(anna.favoriteMovie.favoredBy.length).toEqual(2);
+      expect(anna.favoriteMovie.favoredBy.first).toBe(anna);
+      expect(anna.favoriteMovie.favoredBy.last.name).toEqual('Peter');
+      expect(anna.favoriteMovie.favoredBy.last.favoriteMovie).toBe(anna.favoriteMovie);
     });
 
     it('should be able to create a relation from a collection from a getter', () async {

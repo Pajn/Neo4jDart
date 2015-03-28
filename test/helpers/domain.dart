@@ -24,6 +24,9 @@ class Movie {
 
   @ReverseOf(#actedIn)
   Iterable<ActedIn> cast;
+
+  @ReverseOf(#favoriteMovie)
+  Iterable<Person> favoredBy;
 }
 
 class SpecificMovie extends Movie {
@@ -34,6 +37,8 @@ class Person {
   String name;
   List<String> nicknames;
   DateTime birthDate;
+
+  Movie favoriteMovie;
 }
 
 class Actor extends Person {
