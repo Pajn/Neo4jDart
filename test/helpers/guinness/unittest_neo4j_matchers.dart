@@ -52,8 +52,8 @@ class UnitTestMatchersWithNe4j extends gns.UnitTestMatchers implements Neo4jMatc
         expected.values.forEach((value) {
           value['data'].sort((a, b) => a[a.keys.first].compareTo(b[a.keys.first]));
         });
-        unit.expect(expected.keys.toList()..sort(),
-          unit.equals((result['columns'] as List).toList()..sort()));
+        unit.expect((result['columns'] as List).toList()..sort(),
+          unit.equals(expected.keys.toList()..sort()));
 
         List<String> columns = result['columns'];
         for (var i = 0; i < columns.length; i++) {

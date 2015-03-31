@@ -9,3 +9,4 @@ import 'package:http/http.dart' as http;
 
 part 'src/db.dart';
 part 'src/statement.dart';
+part 'src/transaction.dart';

@@ -39,7 +39,7 @@ main() {
       var query = db.cypher('''
         Create (js:Language {js})
         Return js
-      ''', {'js': {'name': 'JavaScript'}});
+      ''', parameters: {'js': {'name': 'JavaScript'}});
 
       await expect(query).toReturnNodes([{
         'js': { 'data': [{'name': 'JavaScript'}]}

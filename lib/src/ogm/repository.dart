@@ -29,9 +29,11 @@ class Repository<T> {
    *
    * If you want the raw results you should instead use the cypher method in [db].
    */
-  Future<List<T>> cypher(String query, [Map<String, dynamic> parameters,
-                                        List<String> resultDataContents = const ['graph']]) =>
-    session.db.cypher(query, parameters, resultDataContents)
+  Future<List<T>> cypher(String query, {
+                                          Map<String, dynamic> parameters,
+                                          List<String> resultDataContents: const ['graph']
+                                       }) =>
+    session.db.cypher(query, parameters: parameters, resultDataContents: resultDataContents)
       .then(session._instantiate(_t));
 
   /**
@@ -117,7 +119,7 @@ class Repository<T> {
       $skipQuery $limitQuery
     ''';
 
-    return cypher(query, parameters, ['graph', 'row']);
+    return cypher(query, parameters: parameters, resultDataContents: ['graph', 'row']);
   }
 
   /**
@@ -130,7 +132,7 @@ class Repository<T> {
       Match (n:$label)
       Where id(n) = {id}
       Return {id}, (n)-[*0..$maxDepth]-()
-    ''', {'id': id}, ['graph', 'row'])
+    ''', parameters: {'id': id}, resultDataContents: ['graph', 'row'])
       .then((result) => result.isEmpty ? null : result.first);
 
   /**
