@@ -109,6 +109,7 @@ class DbSession {
    */
   Future saveChanges() async {
     var transaction = [];
+    var dbTransaction = db.startCypherTransaction();
 
     for (var node in _toCreate) {
       var properties = _getProperties(node.entity);
@@ -145,7 +146,10 @@ class DbSession {
     }
 
     if (transaction.isNotEmpty) {
-      var results = await db.cypherTransaction(transaction);
+      var results = await dbTransaction.cypherStatements(
+          transaction,
+          commit: _edgesToCreate.isEmpty // Commit directly if there are no edges to create
+      );
 
       for (var i = 0; i < _toCreate.length; i++) {
         var entity = _toCreate[i].entity;
@@ -182,7 +186,7 @@ class DbSession {
         }));
       }
 
-      var results = await db.cypherTransaction(transaction);
+      var results = await dbTransaction.cypherStatements(transaction, commit: true);
 
       for (var i = 0; i < _edgesToCreate.length; i++) {
         _setId(_edgesToCreate[i], results[i]['data'][0]['row'][0]);
