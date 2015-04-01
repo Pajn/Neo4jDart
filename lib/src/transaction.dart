@@ -31,7 +31,6 @@ class Transaction {
     var response = await http.post(url, headers: {
         'Accept': 'application/json; charset=UTF-8',
         'Content-Type': 'application/json; charset=UTF-8',
-        'X-Stream': 'true',
       },
       body: body
     );
