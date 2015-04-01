@@ -144,16 +144,18 @@ class DbSession {
       ''', { 'id': node.id }));
     }
 
-    var results = await db.cypherTransaction(transaction);
+    if (transaction.isNotEmpty) {
+      var results = await db.cypherTransaction(transaction);
 
-    for (var i = 0; i < _toCreate.length; i++) {
-      var entity = _toCreate[i].entity;
-      var id = results[i]['data'][0]['row'][0];
+      for (var i = 0; i < _toCreate.length; i++) {
+        var entity = _toCreate[i].entity;
+        var id = results[i]['data'][0]['row'][0];
 
-      _toCreate[i].id = id;
-      attach(entity, id);
-      _setId(entity, id);
-      _created.add(_toCreate[i]);
+        _toCreate[i].id = id;
+        attach(entity, id);
+        _setId(entity, id);
+        _created.add(_toCreate[i]);
+      }
     }
 
     _toUpdate.forEach(_updated.add);
@@ -166,8 +168,9 @@ class DbSession {
 
     transaction = [];
 
-    for (var edge in _edgesToCreate) {
-      transaction.add(new Statement('''
+    if (_edgesToCreate.isNotEmpty) {
+      for (var edge in _edgesToCreate) {
+        transaction.add(new Statement('''
         Match (h), (t)
         Where id(h) = {h} and id(t) = {t}
         Create (h)-[e:${edge.label} {e}]->(t)
@@ -176,13 +179,14 @@ class DbSession {
           'e': _getProperties(edge),
           'h': entityId(edge.start),
           't': entityId(edge.end),
-      }));
-    }
+        }));
+      }
 
-    results = await db.cypherTransaction(transaction);
+      var results = await db.cypherTransaction(transaction);
 
-    for (var i = 0; i < _edgesToCreate.length; i++) {
-      _setId(_edgesToCreate[i], results[i]['data'][0]['row'][0]);
+      for (var i = 0; i < _edgesToCreate.length; i++) {
+        _setId(_edgesToCreate[i], results[i]['data'][0]['row'][0]);
+      }
     }
 
     _edgesToCreate.clear();
