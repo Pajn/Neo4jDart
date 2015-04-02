@@ -6,9 +6,19 @@ class Transaction {
   final Neo4j db;
 
   String _url;
+  Map _headers;
 
   Transaction(this.db) {
     _url = '${db.host}/db/data/transaction';
+    _headers = {
+      'Accept': 'application/json; charset=UTF-8',
+      'Content-Type': 'application/json; charset=UTF-8',
+      'X-Stream': 'true',
+    };
+
+    if (db._auth != null) {
+      _headers['authorization'] = 'Basic ${db._auth}';
+    }
   }
 
   /// Performs a single cypher query against the database in this transaction
@@ -28,19 +38,18 @@ class Transaction {
 
     var url = commit? '$_url/commit' : _url;
 
-    var response = await http.post(url, headers: {
-        'Accept': 'application/json; charset=UTF-8',
-        'Content-Type': 'application/json; charset=UTF-8',
-        'X-Stream': 'true',
-      },
-      body: body
-    );
+    var response = await http.post(url, headers: _headers, body: body);
 
     if (response.statusCode == 201) {
       _url = response.headers['location'];
     }
 
     body = UTF8.decode(response.bodyBytes);
+
+    if (response.statusCode >= 400) {
+      throw 'Status Code: ${response.statusCode}, body: $body';
+    }
+
     response = JSON.decode(body);
 
     if (response['errors'].isNotEmpty) {
