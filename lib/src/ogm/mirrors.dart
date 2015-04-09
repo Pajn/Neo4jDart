@@ -22,7 +22,11 @@ List<String> _findLabels(object) {
   var cm = reflectClass(object.runtimeType);
 
   do {
-    labels.add(_findLabel(cm));
+    var label = _findLabel(cm);
+    if (!label.contains(' ')) {
+      labels.add(label);
+    }
+
     cm = cm.superclass;
   } while(cm.superclass != null);
 

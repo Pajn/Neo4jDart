@@ -626,5 +626,12 @@ main() {
           '(a:SpecialCases {gettersAndSetters: 14, private: 10, defaultValue: "default"})'
       );
     });
+
+    it('should be able to handle mixins', () async {
+      var entity = new MixedIn();
+
+      specialsRepository.store(entity);
+      await specialsRepository.saveChanges();
+    });
   });
 }
