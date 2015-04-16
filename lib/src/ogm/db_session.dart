@@ -249,7 +249,7 @@ class DbSession {
 
   Object _findOtherObject(Map objects, Map properties, Object start, Symbol field, Symbol edgeField,
                           int otherId) {
-    var startField = start.type.declarations[field];
+    var startField = _getDeclarations(start.type)[field];
     ClassMirror otherClass = _getType(startField);
 
     if (otherClass.isAssignableTo(_Iterable)) {
