@@ -136,6 +136,18 @@ class Repository<T> {
       .then((result) => result.isEmpty ? null : result.first);
 
   /**
+   * Gets a a list of nodes by there [ids].
+   *
+   * Use [maxDepth] to specify how deep relations should be resolved.
+   */
+  Future<List<T>> getAll(List<int> ids, {int maxDepth: 1}) =>
+    cypher('''
+        Match (n:$label)
+        Where id(n) IN {ids}
+        Return id(n), (n)-[*0..$maxDepth]-()
+      ''', parameters: {'ids': ids}, resultDataContents: ['graph', 'row']);
+
+  /**
    * Marks the node for deletion.
    *
    * Use [saveChanges] to persist the deletion.
