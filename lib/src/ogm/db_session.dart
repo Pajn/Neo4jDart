@@ -75,17 +75,19 @@ class DbSession {
    * For relations to be created the other node must exist in the database or marked for creation
    * in the same repository instance.
    */
-  void store(entity) {
+  void store(entity, {bool onlyRelations: false}) {
 
     var node = new Node()
       ..id = entityId(entity)
       ..labels = _findLabels(entity)
       ..entity = entity;
 
-    if (node.id == null) {
-      _toCreate.add(node);
-    } else {
-      _toUpdate.add(node);
+    if (!onlyRelations) {
+      if (node.id == null) {
+        _toCreate.add(node);
+      } else {
+        _toUpdate.add(node);
+      }
     }
 
     _edgesToDelete.addAll(_removedRelations(entity));

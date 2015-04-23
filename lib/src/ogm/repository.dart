@@ -164,7 +164,7 @@ class Repository<T> {
    * For relations to be created the other node must exist in the database or marked for creation
    * in the same repository instance.
    */
-  void store(T entity) => session.store(entity);
+  void store(T entity, {bool onlyRelations: false}) => session.store(entity, onlyRelations: onlyRelations);
 
   /**
    * Persist changes to the database.
