@@ -136,8 +136,6 @@ main() {
     it('should be able to create a node with a collection of relations', () async {
       movieRepository.store(cars);
       movieRepository.store(cars2);
-
-      await movieRepository.saveChanges();
       actorRepository.store(owen);
 
       var query = actorRepository.saveChanges();
@@ -157,6 +155,26 @@ main() {
             ..end = avatar
       );
       actorRepository.store(will);
+
+      var query = actorRepository.saveChanges();
+      await expect(query).toHaveWritten('''
+        (ws:Actor {name:"Will Smith"})-[:actedIn {role: "just a test"}]->(:Movie {name: "Avatar"})
+      ''');
+      await expect(query).not.toHaveDeleted('''
+        (ws:Actor {name:"Will Smith"})-[:actedIn]->(:Movie {name: "Bad Boys"}),
+                                  (ws)-[:actedIn]->(:Movie {name: "Bad Boys II"}),
+                                  (ws)-[:actedIn]->(:Movie {name: "Bad Boys 3"})
+      ''');
+    });
+
+    it('should be able to store only changes in relations', () async {
+      will.name = 'Something else';
+      will.actedIn.add(
+          new ActedIn()
+            ..role = 'just a test'
+            ..end = avatar
+      );
+      actorRepository.store(will, onlyRelations: true);
 
       var query = actorRepository.saveChanges();
       await expect(query).toHaveWritten('''

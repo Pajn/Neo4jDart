@@ -106,9 +106,14 @@ class DbSession {
   /**
    * Marks the node for creation or update.
    *
+   * Created and deleted relations will be detected. TODO: Handle updated relation objects.
+   *
    * Use [saveChanges] to persist the changes to [entity].
    * For relations to be created the other node must exist in the database or marked for creation
-   * in the same repository instance.
+   * in the same session instance.
+   *
+   * By setting [onlyRelations] the [entity] itself will not be created or updated, only changes
+   * in relations will be queued.
    */
   void store(entity, {bool onlyRelations: false}) {
     if (_disposed) throw new StateError('The session have been disposed');
