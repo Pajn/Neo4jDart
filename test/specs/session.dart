@@ -66,5 +66,32 @@ main() {
 
       session..delete(avatar, deleteRelations: true)..saveChanges();
     });
+
+    it('should close all streams on dispose', () async {
+      session.onCreated.listen((_) {}, onDone: expectAsync(() {}));
+      session.onUpdated.listen((_) {}, onDone: expectAsync(() {}));
+      session.onDeleted.listen((_) {}, onDone: expectAsync(() {}));
+
+      session.dispose();
+    });
+
+    it('should not allow interactions after dispose', () {
+      session.dispose();
+
+      expect(session.isDisposed).toBeTrue();
+
+      expect(() => session.store(cars)).toThrowWith(
+          type: StateError,
+          message: 'The session have been disposed'
+      );
+      expect(() => session.delete(theGreenMile)).toThrowWith(
+          type: StateError,
+          message: 'The session have been disposed'
+      );
+      session.saveChanges().catchError(expectAsync((e) {
+        expect(e).toBeA(StateError);
+        expect(e.message).toEqual('The session have been disposed');
+      }));
+    });
   });
 }

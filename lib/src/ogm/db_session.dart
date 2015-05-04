@@ -22,12 +22,17 @@ class DbSession {
   final _updated = new StreamController.broadcast();
   final _deleted = new StreamController.broadcast();
 
+  bool _disposed = false;
+
   /// A stream of [Node]s that have been created on this session
   Stream<Node> get onCreated => _created.stream;
   /// A stream of [Node]s that have been updated on this session
   Stream<Node> get onUpdated => _updated.stream;
   /// A stream of [Node]s that have been deleted on this session
   Stream<Node> get onDeleted => _deleted.stream;
+
+  /// True if the session have been disposed and is no longer usable
+  bool get isDisposed => _disposed;
 
   DbSession(this.db);
 
@@ -47,6 +52,35 @@ class DbSession {
   int entityId(entity) => _entities[entity];
 
   /**
+   * Clears the currently queued tasks
+   */
+  void clearQueue() {
+    _toCreate.clear();
+    _toUpdate.clear();
+    _toDelete.clear();
+    _toDeleteWithRelations.clear();
+    _edgesToCreate.clear();
+    _edgesToUpdate.clear();
+    _edgesToDelete.clear();
+  }
+
+  /**
+   * Disposes the session so that it's no longer usable.
+   *
+   * Disposing a session is useful for stopping the [onCreated], [onUpdated] and [onDeleted]
+   * [Stream]s so that listeners exit gracefully.
+   */
+  void dispose() {
+    clearQueue();
+
+    _created.close();
+    _updated.close();
+    _deleted.close();
+
+    _disposed = true;
+  }
+
+  /**
    * Marks the node for deletion.
    *
    * Use [saveChanges] to persist the deletion.
@@ -55,6 +89,7 @@ class DbSession {
    */
   void delete(entity, {bool deleteRelations: false}) {
     if (entityId(entity) == null) throw 'The entity is not known by the session';
+    if (_disposed) throw new StateError('The session have been disposed');
 
     var node = new Node()
       ..id = entityId(entity)
@@ -76,6 +111,7 @@ class DbSession {
    * in the same repository instance.
    */
   void store(entity, {bool onlyRelations: false}) {
+    if (_disposed) throw new StateError('The session have been disposed');
 
     var node = new Node()
       ..id = entityId(entity)
@@ -110,6 +146,8 @@ class DbSession {
    * The changes should have been queued using the [delete] or [store] methods.
    */
   Future saveChanges() async {
+    if (_disposed) throw new StateError('The session have been disposed');
+
     var transaction = [];
     var dbTransaction = db.startCypherTransaction();
 
