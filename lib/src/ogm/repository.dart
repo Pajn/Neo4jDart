@@ -139,6 +139,11 @@ class Repository<T> {
    * Gets a a list of nodes by there [ids].
    *
    * Use [maxDepth] to specify how deep relations should be resolved.
+   *
+   * NOTE: When a node with specified id is missing it will be omitted, if the length
+   * of the returned List is different than the passed List with [ids] this have happened.
+   * When this happens the index of [ids] and the returned nodes may no longer line up and
+   * you need to be careful to check the ids of the returned nodes.
    */
   Future<List<T>> getAll(List<int> ids, {int maxDepth: 1}) =>
     cypher('''
