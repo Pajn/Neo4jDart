@@ -378,6 +378,15 @@ main() {
       });
     });
 
+    describe('getAll', () {
+      it('should get multiple nodes', () async {
+        var f = await movieRepository.getAll([fury.id, theGreenMile.id]);
+
+        expect(f[0]).toHaveSameProps(fury);
+        expect(f[1]).toHaveSameProps(theGreenMile);
+      });
+    });
+
     describe('findAll', () {
       it('should get all nodes', () async {
         var allMovies = await movieRepository.findAll();
