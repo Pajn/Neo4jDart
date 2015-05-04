@@ -13,6 +13,9 @@ neo4j-community-$NEO_VERSION/bin/neo4j start
 # Make sure the database is stopped after tests
 function stopDatabase {
     neo4j-community-$NEO_VERSION/bin/neo4j stop
+
+    # Remove log so that Travis can cache
+    rm neo4j-community-$NEO_VERSION/data/log/console.log
 }
 trap stopDatabase EXIT
 
