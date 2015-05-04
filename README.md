@@ -26,6 +26,10 @@ main() async {
 
 See the example or test folder for more example usages including examples on the OGM.
 
+## Missing features
+The most notable missing feature is updating relationship objects, currently they can only be
+created or deleted. Ideas for a good API or how to implement it is welcome.
+
 ## Features and bugs
 Please file feature requests and bugs at the [issue tracker][tracker].
 See [waffle][waffle] for current work status.
