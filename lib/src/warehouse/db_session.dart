@@ -86,13 +86,13 @@ class Neo4jSession extends GraphDbSessionBase<Neo4j> {
 
   @override
   Future deleteAll({Map where, Type type}) async {
-    // TODO: implement deleteAll
-    if (where != null || type != null) {
-      throw 'parameters are not implemented';
-    }
+    var parameters = {};
+    var whereClause = buildWhereClause(where, parameters, lg);
+    var label = (type == null) ? '' : ':' + findLabel(type);
 
     var query =
-      'Match (n) '
+      'Match (n$label) '
+      '$whereClause '
       'Optional Match (n)-[r]->() '
       'Delete n, r';
 
