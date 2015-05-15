@@ -1,9 +1,18 @@
 # Changelog
 
 ## 0.2.0
-- Store state in a DbSession
 - Fix UTF-8
+- Support open transactions
+- Support basic HTTP authentication
+
+### OGM
+- Store state in a DbSession
 - Fire events when nodes are created, updated or deleted
+- Save all changes in the same transaction
+- Fix crash when storing an object with a mixin
+- Fix inherited relationship properties
+- Add getAll method
+- Support only storing changes in relations (added, removed) and not the node itself
 
 ## 0.1.1
 - Polymorphism in OGM (Support returning and saving subclasses of T in repository)

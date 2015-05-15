@@ -4,37 +4,31 @@ part of neo4j_dart;
 class Neo4j {
   /// The address of the Neo4j REST API
   final String host;
+  String _auth;
 
-  Neo4j([this.host = 'http://127.0.0.1:7474']);
+  Neo4j({this.host: 'http://127.0.0.1:7474', String username, String password}) {
+    if (username != null) {
+      _auth = CryptoUtils.bytesToBase64(UTF8.encode("$username:$password"));
+    }
+  }
 
   /// Performs a single cypher query against the database
-  Future<Map<String, List>> cypher(String query, [Map<String, dynamic> parameters, List<String> resultDataContents]) =>
-    cypherTransaction([new Statement(query, parameters, resultDataContents)])
-      .then((results) => results.first);
-
-  /// Runs multiple cypher queries in a single transaction
-  Future<List<Map<String, List>>> cypherTransaction(List<Statement> statements) async {
-    if (statements.isEmpty) {
-      return new Future.value([]);
-    }
-
-    var body = JSON.encode({
-      'statements' : statements.map((statement) => statement.toJson()).toList(growable: false)
-    });
-
-    var response = await http.post('$host/db/data/transaction/commit', headers: {
-        'Accept': 'application/json; charset=UTF-8',
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: body
+  Future<Map<String, List>> cypher(String query, {
+                                                   Map<String, dynamic> parameters,
+                                                   List<String> resultDataContents
+                                                 }) =>
+    new Transaction(this).cypher(
+        query,
+        parameters: parameters,
+        resultDataContents: resultDataContents,
+        commit: true
     );
 
-    body = UTF8.decode(response.bodyBytes);
-    response = JSON.decode(body);
+  /// Runs multiple cypher queries in a single transaction
+  Future<List<Map<String, List>>> cypherTransaction(List<Statement> statements) =>
+    new Transaction(this).cypherStatements(statements, commit: true);
 
-    if (response['errors'].isNotEmpty) {
-      throw response;
-    }
-    return response['results'];
-  }
+  /// Start a cypher transaction
+  Transaction startCypherTransaction() =>
+    new Transaction(this);
 }

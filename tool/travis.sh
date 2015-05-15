@@ -4,15 +4,18 @@
 set -e
 
 # Download and start Neo4j
-if [ ! -d neo4j-community-$NEO_VERSION ]; then
+#if [ ! -d neo4j-community-$NEO_VERSION ]; then
     wget dist.neo4j.org/neo4j-community-$NEO_VERSION-unix.tar.gz
-tar -xzf neo4j-community-$NEO_VERSION-unix.tar.gz
-fi
+    tar -xzf neo4j-community-$NEO_VERSION-unix.tar.gz
+#fi
 neo4j-community-$NEO_VERSION/bin/neo4j start
 
 # Make sure the database is stopped after tests
 function stopDatabase {
     neo4j-community-$NEO_VERSION/bin/neo4j stop
+
+    # Remove log so that Travis can cache
+    rm neo4j-community-$NEO_VERSION/data/log/console.log
 }
 trap stopDatabase EXIT
 

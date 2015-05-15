@@ -5,9 +5,10 @@ version: 0.2.0
 author: Rasmus Eneman <rasmus@eneman.eu>
 homepage: https://github.com/Pajn/Neo4jDart
 dependencies:
+  crypto: ">=0.9.0 <0.10.0"
   http: ">=0.11.1+3 <0.12.0"
   warehouse:
     git: https://github.com/Pajn/Warehouse.git
 dev_dependencies:
   guinness: any
-  unittest: any
+  unittest: ">= 0.11.0 <0.12.0"

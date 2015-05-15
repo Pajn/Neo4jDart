@@ -22,12 +22,17 @@ class DbSession {
   final _updated = new StreamController.broadcast();
   final _deleted = new StreamController.broadcast();
 
+  bool _disposed = false;
+
   /// A stream of [Node]s that have been created on this session
   Stream<Node> get onCreated => _created.stream;
   /// A stream of [Node]s that have been updated on this session
   Stream<Node> get onUpdated => _updated.stream;
   /// A stream of [Node]s that have been deleted on this session
   Stream<Node> get onDeleted => _deleted.stream;
+
+  /// True if the session have been disposed and is no longer usable
+  bool get isDisposed => _disposed;
 
   DbSession(this.db);
 
@@ -47,6 +52,35 @@ class DbSession {
   int entityId(entity) => _entities[entity];
 
   /**
+   * Clears the currently queued tasks
+   */
+  void clearQueue() {
+    _toCreate.clear();
+    _toUpdate.clear();
+    _toDelete.clear();
+    _toDeleteWithRelations.clear();
+    _edgesToCreate.clear();
+    _edgesToUpdate.clear();
+    _edgesToDelete.clear();
+  }
+
+  /**
+   * Disposes the session so that it's no longer usable.
+   *
+   * Disposing a session is useful for stopping the [onCreated], [onUpdated] and [onDeleted]
+   * [Stream]s so that listeners exit gracefully.
+   */
+  void dispose() {
+    clearQueue();
+
+    _created.close();
+    _updated.close();
+    _deleted.close();
+
+    _disposed = true;
+  }
+
+  /**
    * Marks the node for deletion.
    *
    * Use [saveChanges] to persist the deletion.
@@ -55,6 +89,7 @@ class DbSession {
    */
   void delete(entity, {bool deleteRelations: false}) {
     if (entityId(entity) == null) throw 'The entity is not known by the session';
+    if (_disposed) throw new StateError('The session have been disposed');
 
     var node = new Node()
       ..id = entityId(entity)
@@ -71,21 +106,29 @@ class DbSession {
   /**
    * Marks the node for creation or update.
    *
+   * Created and deleted relations will be detected. TODO: Handle updated relation objects.
+   *
    * Use [saveChanges] to persist the changes to [entity].
    * For relations to be created the other node must exist in the database or marked for creation
-   * in the same repository instance.
+   * in the same session instance.
+   *
+   * By setting [onlyRelations] the [entity] itself will not be created or updated, only changes
+   * in relations will be queued.
    */
-  void store(entity) {
+  void store(entity, {bool onlyRelations: false}) {
+    if (_disposed) throw new StateError('The session have been disposed');
 
     var node = new Node()
       ..id = entityId(entity)
       ..labels = _findLabels(entity)
       ..entity = entity;
 
-    if (node.id == null) {
-      _toCreate.add(node);
-    } else {
-      _toUpdate.add(node);
+    if (!onlyRelations) {
+      if (node.id == null) {
+        _toCreate.add(node);
+      } else {
+        _toUpdate.add(node);
+      }
     }
 
     _edgesToDelete.addAll(_removedRelations(entity));
@@ -108,7 +151,10 @@ class DbSession {
    * The changes should have been queued using the [delete] or [store] methods.
    */
   Future saveChanges() async {
+    if (_disposed) throw new StateError('The session have been disposed');
+
     var transaction = [];
+    var dbTransaction = db.startCypherTransaction();
 
     for (var node in _toCreate) {
       var properties = _getProperties(node.entity);
@@ -144,16 +190,21 @@ class DbSession {
       ''', { 'id': node.id }));
     }
 
-    var results = await db.cypherTransaction(transaction);
+    if (transaction.isNotEmpty) {
+      var results = await dbTransaction.cypherStatements(
+          transaction,
+          commit: _edgesToCreate.isEmpty // Commit directly if there are no edges to create
+      );
 
-    for (var i = 0; i < _toCreate.length; i++) {
-      var entity = _toCreate[i].entity;
-      var id = results[i]['data'][0]['row'][0];
+      for (var i = 0; i < _toCreate.length; i++) {
+        var entity = _toCreate[i].entity;
+        var id = results[i]['data'][0]['row'][0];
 
-      _toCreate[i].id = id;
-      attach(entity, id);
-      _setId(entity, id);
-      _created.add(_toCreate[i]);
+        _toCreate[i].id = id;
+        attach(entity, id);
+        _setId(entity, id);
+        _created.add(_toCreate[i]);
+      }
     }
 
     _toUpdate.forEach(_updated.add);
@@ -166,8 +217,9 @@ class DbSession {
 
     transaction = [];
 
-    for (var edge in _edgesToCreate) {
-      transaction.add(new Statement('''
+    if (_edgesToCreate.isNotEmpty) {
+      for (var edge in _edgesToCreate) {
+        transaction.add(new Statement('''
         Match (h), (t)
         Where id(h) = {h} and id(t) = {t}
         Create (h)-[e:${edge.label} {e}]->(t)
@@ -176,13 +228,14 @@ class DbSession {
           'e': _getProperties(edge),
           'h': entityId(edge.start),
           't': entityId(edge.end),
-      }));
-    }
+        }));
+      }
 
-    results = await db.cypherTransaction(transaction);
+      var results = await dbTransaction.cypherStatements(transaction, commit: true);
 
-    for (var i = 0; i < _edgesToCreate.length; i++) {
-      _setId(_edgesToCreate[i], results[i]['data'][0]['row'][0]);
+      for (var i = 0; i < _edgesToCreate.length; i++) {
+        _setId(_edgesToCreate[i], results[i]['data'][0]['row'][0]);
+      }
     }
 
     _edgesToCreate.clear();
@@ -241,7 +294,7 @@ class DbSession {
 
   Object _findOtherObject(Map objects, Map properties, Object start, Symbol field, Symbol edgeField,
                           int otherId) {
-    var startField = start.type.declarations[field];
+    var startField = _getDeclarations(start.type)[field];
     ClassMirror otherClass = _getType(startField);
 
     if (otherClass.isAssignableTo(_Iterable)) {

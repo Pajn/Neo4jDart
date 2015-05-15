@@ -29,9 +29,11 @@ class Repository<T> {
    *
    * If you want the raw results you should instead use the cypher method in [db].
    */
-  Future<List<T>> cypher(String query, [Map<String, dynamic> parameters,
-                                        List<String> resultDataContents = const ['graph']]) =>
-    session.db.cypher(query, parameters, resultDataContents)
+  Future<List<T>> cypher(String query, {
+                                          Map<String, dynamic> parameters,
+                                          List<String> resultDataContents: const ['graph']
+                                       }) =>
+    session.db.cypher(query, parameters: parameters, resultDataContents: resultDataContents)
       .then(session._instantiate(_t));
 
   /**
@@ -117,7 +119,7 @@ class Repository<T> {
       $skipQuery $limitQuery
     ''';
 
-    return cypher(query, parameters, ['graph', 'row']);
+    return cypher(query, parameters: parameters, resultDataContents: ['graph', 'row']);
   }
 
   /**
@@ -130,8 +132,25 @@ class Repository<T> {
       Match (n:$label)
       Where id(n) = {id}
       Return {id}, (n)-[*0..$maxDepth]-()
-    ''', {'id': id}, ['graph', 'row'])
+    ''', parameters: {'id': id}, resultDataContents: ['graph', 'row'])
       .then((result) => result.isEmpty ? null : result.first);
+
+  /**
+   * Gets a a list of nodes by there [ids].
+   *
+   * Use [maxDepth] to specify how deep relations should be resolved.
+   *
+   * NOTE: When a node with specified id is missing it will be omitted, if the length
+   * of the returned List is different than the passed List with [ids] this have happened.
+   * When this happens the index of [ids] and the returned nodes may no longer line up and
+   * you need to be careful to check the ids of the returned nodes.
+   */
+  Future<List<T>> getAll(List<int> ids, {int maxDepth: 1}) =>
+    cypher('''
+        Match (n:$label)
+        Where id(n) IN {ids}
+        Return id(n), (n)-[*0..$maxDepth]-()
+      ''', parameters: {'ids': ids}, resultDataContents: ['graph', 'row']);
 
   /**
    * Marks the node for deletion.
@@ -150,7 +169,7 @@ class Repository<T> {
    * For relations to be created the other node must exist in the database or marked for creation
    * in the same repository instance.
    */
-  void store(T entity) => session.store(entity);
+  void store(T entity, {bool onlyRelations: false}) => session.store(entity, onlyRelations: onlyRelations);
 
   /**
    * Persist changes to the database.

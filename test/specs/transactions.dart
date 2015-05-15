@@ -44,5 +44,38 @@ main() {
         expect(query).not.toHaveWritten('(a:Language {name: "Scala"})');
       });
     });
+
+    it('should be able to handle an open transaction', () async {
+      var transaction = db.startCypherTransaction();
+
+      var query = transaction.cypher('''
+        Match (dart:Language {name:"Dart"}),
+              (neo4j:Database {name:"Neo4j"})
+        Create (dart)-[:ConnectsTo]->(neo4j)
+        Return dart
+      ''');
+
+      await expect(query).toReturnNodes([{
+        'dart': { 'data': [{'name': 'Dart'}]}
+      }]);
+
+      await expect(query).not.toHaveWritten('''
+        (a:Language {name:"Dart"})-[b:ConnectsTo]->(c:Database {name:"Neo4j"})
+      ''');
+
+      query = transaction.cypher('''
+        Create (js:Language {js})
+        Return js
+      ''', parameters: {'js': {'name': 'JavaScript'}}, commit: true);
+
+      await expect(query).toHaveWritten('''
+        (a:Language {name:"Dart"})-[b:ConnectsTo]->(c:Database {name:"Neo4j"}),
+        (d:Language {name: "JavaScript"})
+      ''');
+
+      await expect(query).toReturnNodes([{
+        'js': { 'data': [{'name': 'JavaScript'}]}
+      }]);
+    });
   });
 }

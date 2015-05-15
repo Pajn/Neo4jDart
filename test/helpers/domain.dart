@@ -71,6 +71,14 @@ class SpecialCases {
   }
 }
 
+class Mixin {
+  String mixedValue;
+}
+
+class MixedIn extends SpecialCases with Mixin {
+
+}
+
 class ActedIn extends Relation<Actor, Movie> {
   String role;
 }

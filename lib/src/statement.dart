@@ -8,12 +8,17 @@ class Statement {
   /**
    * Tells the database how the returned data should look
    *
-   * The default mode is *row* which will return the data as rows with one value per column.
-   * Nodes will be encoded as a Map.
+   * The default mode is *row* which will return simple values or entities as maps with one
+   * value per column.
    *
-   * The other mode is *graph* which will return all returned nodes and relations in the
-   * query in a graph format with full entity description in one nodes and one relations
-   * List.
+   * ## Other modes
+   * ### graph
+   * The graph format will return all returned nodes and relations in the query
+   * with full entity description in separate node and relation lists.
+   *
+   * ### REST
+   * The REST format will return all returned nodes and relations in the query with the full
+   * REST API description with links for more data about the entity.
    */
   final List<String> resultDataContents;
 
