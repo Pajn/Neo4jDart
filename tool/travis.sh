@@ -4,7 +4,7 @@
 set -e
 
 # Download and start Neo4j
-if [ ! -d neo4j-community-$NEO_VERSION ]; then
+if [ ! "$(ls -A neo4j-community-$NEO_VERSION)" ]; then
     wget dist.neo4j.org/neo4j-community-$NEO_VERSION-unix.tar.gz
     tar -xzf neo4j-community-$NEO_VERSION-unix.tar.gz
 fi
