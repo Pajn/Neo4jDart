@@ -4,18 +4,24 @@
 set -e
 
 # Download and start Neo4j
-#if [ ! -d neo4j-community-$NEO_VERSION ]; then
+if [ ! "$(ls -A neo4j-community-$NEO_VERSION)" ]; then
     wget dist.neo4j.org/neo4j-community-$NEO_VERSION-unix.tar.gz
     tar -xzf neo4j-community-$NEO_VERSION-unix.tar.gz
-#fi
+fi
+
+# Disbale auth in 2.2
+if [ -d neo4j-community-2.2.1 ]; then
+  sed -i.bak s/dbms.security.auth_enabled=true/dbms.security.auth_enabled=false/g neo4j-community-2.2.1/conf/neo4j-server.properties
+fi
+
 neo4j-community-$NEO_VERSION/bin/neo4j start
 
 # Make sure the database is stopped after tests
 function stopDatabase {
     neo4j-community-$NEO_VERSION/bin/neo4j stop
 
-    # Remove log so that Travis can cache
-    rm neo4j-community-$NEO_VERSION/data/log/console.log
+    # Remove logs so that Travis can cache
+    rm neo4j-community-$NEO_VERSION/data/log/*
 }
 trap stopDatabase EXIT
 
