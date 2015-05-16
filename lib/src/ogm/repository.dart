@@ -111,11 +111,12 @@ class Repository<T> {
 
     var skipQuery = skip > 0 ? 'Skip $skip' : '';
     var limitQuery = limit != null ? 'Limit $limit' : '';
+    var depthMatch = (maxDepth == 0) ? '' : '-[*0..$maxDepth]-()';
 
     var query = '''
       Match (n:$label)
       $filterQuery
-      Return id(n), (n)-[*0..$maxDepth]-()
+      Return id(n), (n)$depthMatch
       $skipQuery $limitQuery
     ''';
 
@@ -127,13 +128,16 @@ class Repository<T> {
    *
    * Use [maxDepth] to specify how deep relations should be resolved.
    */
-  Future<T> get(int id, {int maxDepth: 1}) =>
-    cypher('''
+  Future<T> get(int id, {int maxDepth: 1}) {
+    var depthMatch = (maxDepth == 0) ? '' : '-[*0..$maxDepth]-()';
+
+    return cypher('''
       Match (n:$label)
       Where id(n) = {id}
-      Return {id}, (n)-[*0..$maxDepth]-()
+      Return id(n), (n)$depthMatch
     ''', parameters: {'id': id}, resultDataContents: ['graph', 'row'])
       .then((result) => result.isEmpty ? null : result.first);
+  }
 
   /**
    * Gets a a list of nodes by there [ids].
@@ -145,12 +149,15 @@ class Repository<T> {
    * When this happens the index of [ids] and the returned nodes may no longer line up and
    * you need to be careful to check the ids of the returned nodes.
    */
-  Future<List<T>> getAll(List<int> ids, {int maxDepth: 1}) =>
-    cypher('''
+  Future<List<T>> getAll(List<int> ids, {int maxDepth: 1}) {
+    var depthMatch = (maxDepth == 0) ? '' : '-[*0..$maxDepth]-()';
+
+    return cypher('''
         Match (n:$label)
         Where id(n) IN {ids}
-        Return id(n), (n)-[*0..$maxDepth]-()
+        Return id(n), (n)$depthMatch
       ''', parameters: {'ids': ids}, resultDataContents: ['graph', 'row']);
+  }
 
   /**
    * Marks the node for deletion.
