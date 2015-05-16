@@ -53,7 +53,7 @@ class Transaction {
     response = JSON.decode(body);
 
     if (response['errors'].isNotEmpty) {
-      throw response;
+      throw new Neo4jException(response);
     }
     return response['results'];
   }
