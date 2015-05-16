@@ -3,6 +3,7 @@ part of neo4j_dart.warehouse;
 var lg = new LookingGlass();
 
 _labels(Object object) => findLabels(object.runtimeType).join(':');
+_orLabels(List<Type> types) => types.map((type) => 'n:${findLabel(type)}').join(' OR ');
 
 class Neo4jSession extends GraphDbSessionBase<Neo4j> {
   @override
@@ -26,13 +27,13 @@ class Neo4jSession extends GraphDbSessionBase<Neo4j> {
       .then(_builder.build);
 
   @override
-  Future get(int id, {depth: 1, Type type}) {
-    var label = (type == null) ? '' : ':' + findLabel(type);
+  Future get(int id, {depth: 1, List<Type> types}) {
+    var labels = (types == null) ? '' : 'AND (${_orLabels(types)})';
     var depthMatch = (depth == 0) ? '' : '-[*0..$depth]-()';
 
     return cypher(
-        'Match (n$label) '
-        'Where id(n) = {id} '
+        'Match (n) '
+        'Where id(n) = {id}$labels '
         'Return {id}, (n)$depthMatch'
       , parameters: {'id': id}, resultDataContents: const ['graph', 'row']
     )
@@ -40,30 +41,30 @@ class Neo4jSession extends GraphDbSessionBase<Neo4j> {
   }
 
   @override
-  Future<List> getAll(Iterable ids, {depth: 0, Type type}) {
-    var label = (type == null) ? '' : ':' + findLabel(type);
+  Future<List> getAll(Iterable ids, {depth: 0, List<Type> types}) {
+    var labels = (types == null) ? '' : 'AND (${_orLabels(types)})';
     var depthMatch = (depth == 0) ? '' : '-[*0..$depth]-()';
 
     return cypher(
-        'Match (n$label) '
-        'Where id(n) IN {ids} '
+        'Match (n) '
+        'Where id(n) IN {ids}$labels '
         'Return id(n), (n)$depthMatch'
       , parameters: {'ids': ids}, resultDataContents: const ['graph', 'row']
     );
   }
 
   @override
-  Future<List> findAll({Map where, int skip: 0, int limit: 50, depth: 0, String sort, Type type}) {
+  Future<List> findAll({Map where, int skip: 0, int limit: 50, depth: 0, String sort, List<Type> types}) {
     var parameters = {};
-    var whereClause = buildWhereClause(where, parameters, lg);
+    var labels = (types == null) ? null : _orLabels(types);
+    var whereClause = buildWhereClause(where, parameters, lg, labels);
     var sortClause = (sort == null) ? '' : 'Order By n.$sort ';
     var skipClause = (skip <= 0) ? '' : 'Skip $skip';
     var limitClause = (limit == null) ? '' : 'Limit $limit';
-    var label = (type == null) ? '' : ':' + findLabel(type);
     var depthMatch = (depth == 0) ? '' : '-[*0..$depth]-()';
 
     var query =
-      'Match (n$label) '
+      'Match (n) '
       '$whereClause '
       'Return id(n), (n)$depthMatch '
       '$sortClause'
@@ -73,13 +74,13 @@ class Neo4jSession extends GraphDbSessionBase<Neo4j> {
   }
 
   @override
-  Future<int> countAll({Map where, Type type}) async {
+  Future<int> countAll({Map where, List<Type> types}) async {
     var parameters = {};
-    var whereClause = buildWhereClause(where, parameters, lg);
-    var label = (type == null) ? '' : ':' + findLabel(type);
+    var labels = (types == null) ? null : _orLabels(types);
+    var whereClause = buildWhereClause(where, parameters, lg, labels);
 
     var query =
-      'Match (n$label) '
+      'Match (n) '
       '$whereClause '
       'Return count(n)';
 
@@ -88,13 +89,13 @@ class Neo4jSession extends GraphDbSessionBase<Neo4j> {
   }
 
   @override
-  Future deleteAll({Map where, Type type}) async {
+  Future deleteAll({Map where, List<Type> types}) async {
     var parameters = {};
-    var whereClause = buildWhereClause(where, parameters, lg);
-    var label = (type == null) ? '' : ':' + findLabel(type);
+    var labels = (types == null) ? null : _orLabels(types);
+    var whereClause = buildWhereClause(where, parameters, lg, labels);
 
     var query =
-      'Match (n$label) '
+      'Match (n) '
       '$whereClause '
       'Optional Match (n)-[r]->() '
       'Delete n, r';

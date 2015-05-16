@@ -14,8 +14,8 @@ String setParameter(Map parameters, value, LookingGlass lg) {
   return '{v${parameters.keys.length - 1}}';
 }
 
-String buildWhereClause(Map where, Map parameters, LookingGlass lg) {
-  var whereClause = '';
+String buildWhereClause(Map where, Map parameters, LookingGlass lg, String labels) {
+  var whereClause;
 
   if (where != null && where.isNotEmpty) {
     var filters = [];
@@ -30,10 +30,18 @@ String buildWhereClause(Map where, Map parameters, LookingGlass lg) {
       }
     });
 
-    whereClause = 'Where ' + filters.join(' AND ');
+    whereClause = filters.join(' AND ');
   }
 
-  return whereClause;
+  if (labels != null) {
+    if (whereClause == null) {
+      whereClause = labels;
+    } else {
+      whereClause = '($whereClause) AND ($labels)';
+    }
+  }
+
+  return (whereClause == null) ? '' : 'Where $whereClause';
 }
 
 String visitMatcher(Matcher matcher, Map parameters, LookingGlass lg) {
