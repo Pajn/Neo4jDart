@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.1
+- Add support for Neo4j 2.2 (2.1 is still supported)
+
 ## 0.2.0
 - Fix UTF-8
 - Support open transactions
