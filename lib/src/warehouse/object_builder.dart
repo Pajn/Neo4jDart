@@ -39,8 +39,7 @@ class ObjectBuilder {
       if (edgeType == null) {
         start.setRelation(edgeName, end);
       } else {
-        var edge = lg.lookOnClass(edgeType).createInstance();
-        start.setRelation(edgeName, end, edge);
+        start.setRelation(edgeName, end, edgeType, edge['properties']);
       }
 
       session.attachEdge(start.instance, edgeName, edgeId, endId);

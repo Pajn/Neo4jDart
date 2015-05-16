@@ -97,7 +97,7 @@ class Neo4jSession extends GraphDbSessionBase<Neo4j> {
     var query =
       'Match (n) '
       '$whereClause '
-      'Optional Match (n)-[r]->() '
+      'Optional Match (n)-[r]-() '
       'Delete n, r';
 
     await db.cypher(query);
@@ -115,12 +115,12 @@ class Neo4jSession extends GraphDbSessionBase<Neo4j> {
     var transaction = [];
     var dbTransaction = db.startCypherTransaction();
 
-    List<DeleteEdgeOperation> edgesToDelete = [];
+    List<EdgeOperation> edgesToDelete = [];
     List<EdgeOperation> edgesOperations = [];
     List<DbOperation> nodeOperations = [];
 
     for (var operation in queue) {
-      if (operation is DeleteEdgeOperation) {
+      if (operation is EdgeOperation && operation.type == OperationType.delete) {
         // Edges to delete should come first as they may otherwise hinder deletion of nodes
         edgesToDelete.add(operation);
       } else if (operation is EdgeOperation) {
@@ -167,26 +167,35 @@ class Neo4jSession extends GraphDbSessionBase<Neo4j> {
           }));
           break;
         case OperationType.delete:
-          // TODO: With or without relation?
-//            transaction.add(new Statement('''
-//              Match (n)
-//              Where id(n) = {id}
-//              Optional Match (n)-[r]-()
-//              Delete n, r
-//            ''', { 'id': operation.id }));
-
-          transaction.add(new Statement('Match (n) Where id(n) = {id} Delete n', {
-            'id': operation.id,
-          }));
+          if (operation is DeleteNodeOperation && operation.deleteEdges) {
+            transaction.add(new Statement(
+              'Match (n) '
+              'Where id(n) = {id} '
+              'Optional Match (n)-[r]-() '
+              'Delete n, r'
+            , { 'id': operation.id }));
+          } else {
+            transaction.add(new Statement('Match (n) Where id(n) = {id} Delete n', {
+              'id': operation.id,
+            }));
+          }
           break;
       }
     }
 
     if (transaction.isNotEmpty) {
-      var results = await dbTransaction.cypherStatements(
-          transaction,
-          commit: edgesOperations.isEmpty // Commit directly if there are no edges to store later
-      );
+      var results;
+      try {
+        results = await dbTransaction.cypherStatements(
+            transaction,
+            commit: edgesOperations.isEmpty // Commit directly if there are no edges to store later
+        );
+      } on Neo4jException catch(e) {
+        if (e.errors.any((error) => error['message'].contains('still has relationships'))) {
+          throw new StateError('The node still have relations');
+        }
+        rethrow;
+      }
 
       for (var i = 0; i < nodeOperations.length; i++) {
         var operation = nodeOperations[i];
@@ -210,10 +219,10 @@ class Neo4jSession extends GraphDbSessionBase<Neo4j> {
 
       switch (operation.type) {
         case OperationType.create:
-          var headId = entityId(operation.startNode);
-          var tailId = entityId(operation.endNode);
-          if (headId == null) headId = createdNodeIds[operation.startNode];
-          if (tailId == null) tailId = createdNodeIds[operation.endNode];
+          var headId = entityId(operation.tailNode);
+          var tailId = entityId(operation.headNode);
+          if (headId == null) headId = createdNodeIds[operation.tailNode];
+          if (tailId == null) tailId = createdNodeIds[operation.headNode];
 
           if (headId == null) throw 'head id is null';
           if (tailId == null) throw 'tail id is null';
