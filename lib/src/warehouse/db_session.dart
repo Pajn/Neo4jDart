@@ -28,11 +28,12 @@ class Neo4jSession extends GraphDbSessionBase<Neo4j> {
   @override
   Future get(int id, {depth: 1, Type type}) {
     var label = (type == null) ? '' : ':' + findLabel(type);
+    var depthMatch = (depth == 0) ? '' : '-[*0..$depth]-()';
 
     return cypher(
         'Match (n$label) '
         'Where id(n) = {id} '
-        'Return {id}, (n)-[*0..$depth]-()'
+        'Return {id}, (n)$depthMatch'
       , parameters: {'id': id}, resultDataContents: const ['graph', 'row']
     )
     .then((result) => result.isEmpty ? null : result.first);
@@ -41,11 +42,12 @@ class Neo4jSession extends GraphDbSessionBase<Neo4j> {
   @override
   Future<List> getAll(Iterable ids, {depth: 0, Type type}) {
     var label = (type == null) ? '' : ':' + findLabel(type);
+    var depthMatch = (depth == 0) ? '' : '-[*0..$depth]-()';
 
     return cypher(
         'Match (n$label) '
         'Where id(n) IN {ids} '
-        'Return id(n), (n)-[*0..$depth]-()'
+        'Return id(n), (n)$depthMatch'
       , parameters: {'ids': ids}, resultDataContents: const ['graph', 'row']
     );
   }
@@ -58,11 +60,12 @@ class Neo4jSession extends GraphDbSessionBase<Neo4j> {
     var skipClause = (skip <= 0) ? '' : 'Skip $skip';
     var limitClause = (limit == null) ? '' : 'Limit $limit';
     var label = (type == null) ? '' : ':' + findLabel(type);
+    var depthMatch = (depth == 0) ? '' : '-[*0..$depth]-()';
 
     var query =
       'Match (n$label) '
       '$whereClause '
-      'Return id(n), (n)-[*0..$depth]-() '
+      'Return id(n), (n)$depthMatch '
       '$sortClause'
       '$skipClause $limitClause';
 
