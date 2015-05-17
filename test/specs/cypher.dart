@@ -83,7 +83,8 @@ main() {
     it('should throw on errors', () =>
       db.cypher('Create (dart:Language {name:"Dart"})')
         .catchError(expectAsync((result) {
-          expect(result['errors'][0]['code']).toEqual('Neo.ClientError.Schema.ConstraintViolation');
+          expect(result).toBeA(Neo4jException);
+          expect(result.errors[0]['code']).toEqual('Neo.ClientError.Schema.ConstraintViolation');
         })));
   });
 }

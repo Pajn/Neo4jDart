@@ -272,8 +272,9 @@ main() {
       movieRepository.delete(avatar);
 
       var query = movieRepository.saveChanges().catchError(expectAsync((error) {
-        expect(error['errors'][0]['code']).toEqual('Neo.DatabaseError.Transaction.CouldNotCommit');
-        expect(error['errors'][0]['message']).toContain('still has relationships');
+        expect(error).toBeA(Neo4jException);
+        expect(error.errors[0]['code']).toEqual('Neo.DatabaseError.Transaction.CouldNotCommit');
+        expect(error.errors[0]['message']).toContain('still has relationships');
       }));
 
       return expect(query).not.toHaveDeleted('(a:Movie {name:"Avatar", year:2009})');

@@ -37,7 +37,8 @@ main() {
           new Statement('Create (:Language {name: "Scala"})'),
           new Statement('Create (:Language {name: "Scala"})'),
       ]).catchError(expectAsync((result) {
-        expect(result['errors'][0]['code']).toEqual('Neo.ClientError.Schema.ConstraintViolation');
+        expect(result).toBeA(Neo4jException);
+        expect(result.errors[0]['code']).toEqual('Neo.ClientError.Schema.ConstraintViolation');
       }));
 
       return query.then((_) {
