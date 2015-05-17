@@ -25,6 +25,8 @@ function stopDatabase {
 }
 trap stopDatabase EXIT
 
+sleep 1
+
 # Run the tests.
 dart --checked test/runner.dart
 
