@@ -27,7 +27,10 @@ class Neo4jSession extends GraphDbSessionBase<Neo4j> {
       .then(_builder.build);
 
   @override
-  Future get(int id, {depth: 1, List<Type> types}) {
+  Future get(id, {depth: 1, List<Type> types}) {
+    if (id is! int) {
+      id = int.parse(id);
+    }
     var labels = (types == null) ? '' : 'AND (${_orLabels(types)})';
     var depthMatch = (depth == 0) ? '' : '-[*0..$depth]-()';
 
@@ -42,12 +45,22 @@ class Neo4jSession extends GraphDbSessionBase<Neo4j> {
 
   @override
   Future<List> getAll(Iterable ids, {depth: 0, List<Type> types}) {
-    var labels = (types == null) ? '' : 'AND (${_orLabels(types)})';
+    ids = ids
+      .map((id) {
+        if (id is! int) {
+          id = int.parse(id);
+        }
+        return id;
+      })
+      .toList();
+
+    var labels = (types == null) ? '' : ' AND (${_orLabels(types)})';
     var depthMatch = (depth == 0) ? '' : '-[*0..$depth]-()';
 
     return cypher(
+        'Unwind {ids} as id '
         'Match (n) '
-        'Where id(n) IN {ids}$labels '
+        'Where id(n) = id$labels '
         'Return id(n), (n)$depthMatch'
       , parameters: {'ids': ids}, resultDataContents: const ['graph', 'row']
     );
