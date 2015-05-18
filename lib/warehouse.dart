@@ -13,3 +13,4 @@ import 'src/warehouse/where_clause.dart';
 export 'package:neo4j_dart/neo4j_dart.dart';
 
 part 'src/warehouse/db_session.dart';
+part 'src/warehouse/repository.dart';
