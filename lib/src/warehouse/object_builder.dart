@@ -72,6 +72,6 @@ class ObjectBuilder {
         .toList();
     }
 
-    return instances.values.map((il) => il.instance);
+    return instances.values.map((il) => il.instance).toList();
   }
 }

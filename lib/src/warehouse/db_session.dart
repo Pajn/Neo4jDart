@@ -22,7 +22,7 @@ class Neo4jSession extends GraphDbSessionBase<Neo4j> {
   /// The results will be instantiated from the saved entity classes.
   /// If you want the raw results you should instead use the cypher method in [db].
   Future<List> cypher(String query, {Map<String, dynamic> parameters,
-                                     List<String> resultDataContents: const ['graph']}) =>
+                                     List<String> resultDataContents: const ['graph', 'row']}) =>
     db.cypher(query, parameters: parameters, resultDataContents: resultDataContents)
       .then(_builder.build);
 
@@ -37,8 +37,8 @@ class Neo4jSession extends GraphDbSessionBase<Neo4j> {
     return cypher(
         'Match (n) '
         'Where id(n) = {id}$labels '
-        'Return {id}, (n)$depthMatch'
-      , parameters: {'id': id}, resultDataContents: const ['graph', 'row']
+        'Return {id}, (n)$depthMatch',
+        parameters: {'id': id}
     )
     .then((result) => result.isEmpty ? null : result.first);
   }
@@ -61,8 +61,8 @@ class Neo4jSession extends GraphDbSessionBase<Neo4j> {
         'Unwind {ids} as id '
         'Match (n) '
         'Where id(n) = id$labels '
-        'Return id(n), (n)$depthMatch'
-      , parameters: {'ids': ids}, resultDataContents: const ['graph', 'row']
+        'Return id(n), (n)$depthMatch',
+        parameters: {'ids': ids}
     );
   }
 
@@ -83,7 +83,7 @@ class Neo4jSession extends GraphDbSessionBase<Neo4j> {
       '$sortClause'
       '$skipClause $limitClause';
 
-    return cypher(query, parameters: parameters, resultDataContents: const ['graph', 'row']);
+    return cypher(query, parameters: parameters);
   }
 
   @override
