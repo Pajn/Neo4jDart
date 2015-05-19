@@ -7,4 +7,6 @@ class Neo4jException implements Exception {
   String get message => response.toString();
 
   Neo4jException(this.response);
+
+  String toString() => message;
 }
