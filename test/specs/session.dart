@@ -25,6 +25,7 @@ main() {
       avatar = await movieRepository.find({'name': 'Avatar'});
       theGreenMile = await movieRepository.find({'name': 'The Green Mile'});
     });
+    afterEach(cleanUpTestData);
 
     it('should send an event after a node is created', () {
       session.onCreated.listen(expectAsync((node) {

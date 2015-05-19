@@ -9,6 +9,6 @@ main() {
   runConformanceTests(
       () => new Neo4jSession(db),
       (session, type) => new GraphRepository.withTypes(session, [type]),
-      testTimeout: const Duration(seconds: 5)
+      testTimeout: const Duration(seconds: 10)
   );
 }

@@ -68,6 +68,7 @@ main() {
         ..name = 'Peter'
         ..favoriteMovie = avatar;
     });
+    afterEach(cleanUpTestData);
 
     it('should be able to create a node', () {
       movieRepository.store(cars);
