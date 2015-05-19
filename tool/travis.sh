@@ -4,10 +4,10 @@
 set -e
 
 # Download and start Neo4j
-if [ ! "$(ls -A neo4j-community-$NEO_VERSION)" ]; then
+#if [ ! "$(ls -A neo4j-community-$NEO_VERSION)" ]; then
     wget dist.neo4j.org/neo4j-community-$NEO_VERSION-unix.tar.gz
     tar -xzf neo4j-community-$NEO_VERSION-unix.tar.gz
-fi
+#fi
 
 # Disbale auth in 2.2
 if [ -d neo4j-community-2.2.1 ]; then
@@ -21,11 +21,11 @@ function stopDatabase {
     neo4j-community-$NEO_VERSION/bin/neo4j stop
 
     # Remove logs so that Travis can cache
-    rm neo4j-community-$NEO_VERSION/data/log/*
+    #rm neo4j-community-$NEO_VERSION/data/log/*
 }
 trap stopDatabase EXIT
 
-sleep 1
+sleep 5
 
 # Run the tests.
 dart --checked test/runner.dart
