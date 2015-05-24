@@ -4,7 +4,7 @@
 
 A Neo4j driver for Dart.
 Both a simple driver for executing Cypher queries and an [Warehouse][] adapter
-that implements the GraphDbSession interface.
+that implements the [GraphDbSession][] interface.
 The previously provided OGM (Object Graph Mapper) is deprecated and is being
 replaced by [Warehouse][].
 
@@ -39,5 +39,6 @@ Please file feature requests and bugs at the [issue tracker][tracker].
 See [waffle][waffle] for current work status.
 
 [Warehouse]: https://pub.dartlang.org/packages/warehouse
+[GraphDbSession]: https://github.com/Pajn/Warehouse/blob/master/lib/src/graph/graph_db_session.dart
 [tracker]: https://github.com/Pajn/Neo4jDart/issues
 [waffle]: https://waffle.io/Pajn/Neo4jDart

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0
+- Add Warehouse adapter
+- Deprecate OGM
+
 ## 0.2.1
 - Add support for Neo4j 2.2 (2.1 is still supported)
 
