@@ -3,7 +3,10 @@
 [![Coverage Status](https://coveralls.io/repos/Pajn/Neo4jDart/badge.svg)](https://coveralls.io/r/Pajn/Neo4jDart)
 
 A Neo4j driver for Dart.
-Both a simple driver and an OGM (Object Graph Mapper) is provided in separate libraries.
+Both a simple driver for executing Cypher queries and an [Warehouse][] adapter
+that implements the GraphDbSession interface.
+The previously provided OGM (Object Graph Mapper) is deprecated and is being
+replaced by [Warehouse][].
 
 ## Usage
 A simple usage example:
@@ -24,7 +27,8 @@ main() async {
 }
 ```
 
-See the example or test folder for more example usages including examples on the OGM.
+See the example or test folder for more example usages and [Warehouse][] for
+documentation on using the adapter.
 
 ## Missing features
 The most notable missing feature is updating relationship objects, currently they can only be
@@ -34,5 +38,6 @@ created or deleted. Ideas for a good API or how to implement it is welcome.
 Please file feature requests and bugs at the [issue tracker][tracker].
 See [waffle][waffle] for current work status.
 
+[Warehouse]: https://pub.dartlang.org/packages/warehouse
 [tracker]: https://github.com/Pajn/Neo4jDart/issues
 [waffle]: https://waffle.io/Pajn/Neo4jDart

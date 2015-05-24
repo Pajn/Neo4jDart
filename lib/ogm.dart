@@ -88,6 +88,7 @@
  *  }
  * ```
  */
+@deprecated
 library neo4j_dart.ogm;
 
 import 'dart:async';
