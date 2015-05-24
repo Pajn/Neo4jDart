@@ -9,10 +9,6 @@ import 'warehouse_conformance.dart' as warehouse_conformance;
 import 'package:unittest/unittest.dart';
 
 class TestConfiguration extends SimpleConfiguration {
-  onTestStart(_) {
-    print('started');
-  }
-
   onTestResult(TestCase result) {
     print(formatResult(result).trim());
   }

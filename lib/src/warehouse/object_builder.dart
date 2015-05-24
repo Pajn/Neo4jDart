@@ -19,7 +19,7 @@ class ObjectBuilder {
     }
   }
 
-  buildGraph(Map<int, InstanceLens> instances, List<Map> nodes, List<Map> edges) {
+  buildGraph(Map<int, InstanceLens> instances, List<int> createdEdges, List<Map> nodes, List<Map> edges) {
     for (var node in nodes) {
       buildNode(instances, node['properties'], int.parse(node['id']));
     }
@@ -28,6 +28,12 @@ class ObjectBuilder {
       var startId = int.parse(edge['startNode']);
       var edgeId = int.parse(edge['id']);
       var endId = int.parse(edge['endNode']);
+
+      if (createdEdges.contains(edgeId)) {
+        continue;
+      } else {
+        createdEdges.add(edgeId);
+      }
 
       var edgeName = edge['type'];
 
@@ -48,6 +54,7 @@ class ObjectBuilder {
 
   build(Map<String, List<Map<String, List>>> dbResult) {
     Map<int, InstanceLens> instances = new HashMap();
+    List<int> edges = [];
     var hasRow = false;
 
     for (var row in dbResult['data']) {
@@ -56,7 +63,7 @@ class ObjectBuilder {
       }
       if (row.containsKey('graph')) {
         row = row['graph'];
-        buildGraph(instances, row['nodes'], row['relationships']);
+        buildGraph(instances, edges, row['nodes'], row['relationships']);
       } else if (row.containsKey('row')) {
         row = row['row'];
         buildNode(instances, row[1], row[0]);

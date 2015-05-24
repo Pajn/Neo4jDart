@@ -7,8 +7,9 @@ import 'package:warehouse/graph.dart';
 
 import 'package:neo4j_dart/neo4j_dart.dart';
 
-import 'src/warehouse/object_builder.dart';
-import 'src/warehouse/where_clause.dart';
+import 'package:neo4j_dart/src/warehouse/edge_pattern.dart';
+import 'package:neo4j_dart/src/warehouse/object_builder.dart';
+import 'package:neo4j_dart/src/warehouse/where_clause.dart';
 
 export 'package:neo4j_dart/neo4j_dart.dart';
 

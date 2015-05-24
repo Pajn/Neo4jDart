@@ -32,12 +32,13 @@ class Neo4jSession extends GraphDbSessionBase<Neo4j> {
       id = int.parse(id);
     }
     var labels = (types == null) ? '' : 'AND (${_orLabels(types)})';
-    var depthMatch = (depth == 0) ? '' : '-[*0..$depth]-()';
+    var depthMatch = buildEdgePattern(depth);
 
     return cypher(
         'Match (n) '
         'Where id(n) = {id}$labels '
-        'Return {id}, (n)$depthMatch',
+        '${depthMatch.match} '
+        'Return {id}, ${depthMatch.toReturn.join(',')} ',
         parameters: {'id': id}
     )
     .then((result) => result.isEmpty ? null : result.first);
@@ -55,13 +56,14 @@ class Neo4jSession extends GraphDbSessionBase<Neo4j> {
       .toList();
 
     var labels = (types == null) ? '' : ' AND (${_orLabels(types)})';
-    var depthMatch = (depth == 0) ? '' : '-[*0..$depth]-()';
+    var depthMatch = buildEdgePattern(depth);
 
     return cypher(
         'Unwind {ids} as id '
         'Match (n) '
         'Where id(n) = id$labels '
-        'Return id(n), (n)$depthMatch',
+        '${depthMatch.match} '
+        'Return id(n), ${depthMatch.toReturn.join(',')} ',
         parameters: {'ids': ids}
     );
   }
@@ -74,12 +76,13 @@ class Neo4jSession extends GraphDbSessionBase<Neo4j> {
     var sortClause = (sort == null) ? '' : 'Order By n.$sort ';
     var skipClause = (skip <= 0) ? '' : 'Skip $skip';
     var limitClause = (limit == null) ? '' : 'Limit $limit';
-    var depthMatch = (depth == 0) ? '' : '-[*0..$depth]-()';
+    var depthMatch = buildEdgePattern(depth);
 
     var query =
       'Match (n) '
       '$whereClause '
-      'Return id(n), (n)$depthMatch '
+      '${depthMatch.match} '
+      'Return id(n), ${depthMatch.toReturn.join(',')} '
       '$sortClause'
       '$skipClause $limitClause';
 
@@ -114,12 +117,6 @@ class Neo4jSession extends GraphDbSessionBase<Neo4j> {
       'Delete n, r';
 
     await db.cypher(query);
-  }
-
-  @override
-  Future resolveRelations(entity, {depth: 1}) {
-    // TODO: implement resolveRelations
-    throw 'not implemented';
   }
 
   @override
