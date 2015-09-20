@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.1
+- Support both list contains and string contains matchers
+
 ## 0.3.0
 - Add Warehouse adapter
 - Deprecate OGM
