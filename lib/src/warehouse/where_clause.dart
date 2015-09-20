@@ -1,5 +1,6 @@
 library neo4j_dart.warehouse.where_clause;
 
+import 'package:quiver/pattern.dart' show escapeRegex;
 import 'package:warehouse/warehouse.dart';
 import 'package:warehouse/adapters/base.dart';
 
@@ -54,10 +55,14 @@ String visitMatcher(Matcher matcher, Map parameters, LookingGlass lg) {
     } else {
       return 'not(${visitMatcher(matcher.invertedMatcher, parameters, lg)})';
     }
-  } else if (matcher is ContainMatcher) {
+  } else if (matcher is ListContainsMatcher) {
     var parameter = setParameter(parameters, matcher.expected, lg);
     return '$parameter IN {field}';
-  } else if (matcher is ListMatcher) {
+  } else if (matcher is StringContainMatcher) {
+    var pattern = escapeRegex(matcher.expected);
+    var parameter = setParameter(parameters, '(?i).*$pattern.*', lg);
+    return '{field} =~ $parameter';
+  } else if (matcher is InListMatcher) {
     var parameter = setParameter(parameters, matcher.list, lg);
     return '{field} IN $parameter';
   } else if (matcher is EqualsMatcher) {
