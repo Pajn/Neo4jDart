@@ -1,5 +1,5 @@
 library testdata;
 
-import 'api.dart';
+import 'api_browser.dart';
 
 part 'src/testdata.dart';

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.2
+- Support executing cypher queries from the browser 
+
 ## 0.3.1
 - Support both list contains and string contains matchers
 
