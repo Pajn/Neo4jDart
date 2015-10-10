@@ -38,7 +38,7 @@ class Transaction {
 
     var url = commit? '$_url/commit' : _url;
 
-    var response = await http.post(url, headers: _headers, body: body);
+    var response = await httpClient.post(url, headers: _headers, body: body);
 
     if (response.statusCode == 201) {
       _url = response.headers['location'];
