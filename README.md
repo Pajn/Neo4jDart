@@ -18,7 +18,7 @@ main() async {
   var result = await db.cypher('''
         Create (dart:Language {dart})-[:connects_to]->(neo4j:Database {neo4j})
         Return id(dart), id(neo4j)
-      ''', {
+      ''', parameters: {
         'dart': { 'name': 'Dart' },
         'neo4j': { 'name': 'Neo4j' },
       });
