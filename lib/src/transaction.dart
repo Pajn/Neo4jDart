@@ -22,39 +22,43 @@ class Transaction {
   }
 
   /// Performs a single cypher query against the database in this transaction
-  Future<Map<String, List>> cypher(String query, {
-                                                    Map<String, dynamic> parameters,
-                                                    List<String> resultDataContents,
-                                                    bool commit: false
-                                                  }) =>
-    cypherStatements([new Statement(query, parameters, resultDataContents)], commit: commit)
-      .then((results) => results.first);
+  Future<Map<String, List>> cypher(String query,
+          {Map<String, dynamic> parameters,
+          List<String> resultDataContents,
+          bool commit: false}) =>
+      cypherStatements([new Statement(query, parameters, resultDataContents)],
+              commit: commit)
+          .then((results) => results.first);
 
   /// Runs multiple cypher queries in this transaction
-  Future<List<Map<String, List>>> cypherStatements(List<Statement> statements, {bool commit: false}) async {
-    var body = JSON.encode({
-      'statements' : statements.map((statement) => statement.toJson()).toList(growable: false)
+  Future<List<Map<String, List>>> cypherStatements(List<Statement> statements,
+      {bool commit: false}) async {
+    var body = jsonEncode({
+      'statements': statements
+          .map((statement) => statement.toJson())
+          .toList(growable: false)
     });
 
-    var url = commit? '$_url/commit' : _url;
+    var url = commit ? '$_url/commit' : _url;
 
-    var response = await httpClient.post(url, headers: _headers, body: body);
+    var response =
+        await httpClient.post(Uri.parse(url), headers: _headers, body: body);
 
     if (response.statusCode == 201) {
       _url = response.headers['location'];
     }
 
-    body = UTF8.decode(response.bodyBytes);
+    body = utf8.decode(response.bodyBytes);
 
     if (response.statusCode >= 400) {
       throw 'Status Code: ${response.statusCode}, body: $body';
     }
 
-    response = JSON.decode(body);
+    Map<String, dynamic> responseBody = jsonDecode(body);
 
-    if (response['errors'].isNotEmpty) {
-      throw new Neo4jException(response);
+    if (responseBody['errors'].isNotEmpty) {
+      throw new Neo4jException(responseBody);
     }
-    return response['results'];
+    return responseBody['results'];
   }
 }

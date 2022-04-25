@@ -1,13 +1,12 @@
 /**
- * A thin Neo4j driver for running Cypher queries though the REST API from the 
+ * A thin Neo4j driver for running Cypher queries though the REST API from the
  * server.
  */
 library neo4j_dart;
 
 import 'dart:async';
 import 'dart:convert';
-import 'package:crypto/crypto.dart';
-import 'package:http/http.dart' show IOClient;
+import 'package:http/io_client.dart';
 
 part 'src/db.dart';
 part 'src/exceptions.dart';
