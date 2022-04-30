@@ -5,33 +5,36 @@ class Transaction {
   /// The database this transaction is open against
   final Neo4j db;
 
-  String _url;
-  Map _headers;
+  late final String _url;
+  late final Map<String, String> _headers;
 
-  Transaction(this.db) {
-    _url = '${db.host}/db/data/transaction';
+  Transaction({required this.db}) {
+    _url = '${db.host}/db/${db.database}/tx';
     _headers = {
       'Accept': 'application/json; charset=UTF-8',
       'Content-Type': 'application/json; charset=UTF-8',
       'X-Stream': 'true',
     };
 
-    if (db._auth != null) {
-      _headers['authorization'] = 'Basic ${db._auth}';
-    }
+    _headers['authorization'] = 'Basic ${db._auth}';
   }
 
   /// Performs a single cypher query against the database in this transaction
-  Future<Map<String, List>> cypher(String query,
-          {Map<String, dynamic> parameters,
-          List<String> resultDataContents,
-          bool commit: false}) =>
-      cypherStatements([new Statement(query, parameters, resultDataContents)],
-              commit: commit)
+  Future<Map<String, List>> cypher({
+    required String query,
+    Map<String, dynamic>? parameters,
+    bool commit: false,
+  }) =>
+      cypherStatements([
+        new Statement(
+          cypher: query,
+          parameters: parameters,
+        )
+      ], commit: commit)
           .then((results) => results.first);
 
   /// Runs multiple cypher queries in this transaction
-  Future<List<Map<String, List>>> cypherStatements(List<Statement> statements,
+  Future<List<dynamic>> cypherStatements(List<Statement> statements,
       {bool commit: false}) async {
     var body = jsonEncode({
       'statements': statements
@@ -44,9 +47,9 @@ class Transaction {
     var response =
         await httpClient.post(Uri.parse(url), headers: _headers, body: body);
 
-    if (response.statusCode == 201) {
-      _url = response.headers['location'];
-    }
+    // if (response.statusCode == 201) {
+    //   _url = response.headers['location'];
+    // }
 
     body = utf8.decode(response.bodyBytes);
 

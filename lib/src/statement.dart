@@ -3,7 +3,7 @@ part of neo4j_dart;
 /// A single cypher query
 class Statement {
   final String cypher;
-  final Map<String, dynamic> parameters;
+  final Map<String, dynamic>? parameters;
 
   /**
    * Tells the database how the returned data should look
@@ -20,17 +20,17 @@ class Statement {
    * The REST format will return all returned nodes and relations in the query with the full
    * REST API description with links for more data about the entity.
    */
-  final List<String> resultDataContents;
+  // final List<String> resultDataContents;
 
-  Statement(this.cypher, [this.parameters, this.resultDataContents]);
+  Statement({
+    required this.cypher,
+    this.parameters,
+  });
 
-  Map toJson() {
+  Map<String, dynamic> toJson() {
     Map<String, dynamic> json = {'statement': cypher};
     if (parameters != null) {
       json['parameters'] = parameters;
-    }
-    if (resultDataContents != null) {
-      json['resultDataContents'] = resultDataContents;
     }
     return json;
   }

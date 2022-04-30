@@ -6,9 +6,10 @@ author: Rasmus Eneman <rasmus@eneman.eu>
 homepage: https://github.com/Pajn/Neo4jDart
 
 environment:
-  sdk: '>=2.10.0 <3.0.0'
+  sdk: '>=2.12.0'
 
 dependencies:
   crypto:
   http:
   quiver:
+  test:
