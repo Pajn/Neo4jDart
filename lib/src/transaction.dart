@@ -1,67 +1,50 @@
-part of neo4j_dart;
+import 'package:dio/dio.dart';
 
-/// An open cypher transaction
+import 'db.dart';
+import './network/network.dart';
+
 class Transaction {
-  /// The database this transaction is open against
   final Neo4j db;
+  final Dio dio;
 
-  late final String _url;
-  late final Map<String, String> _headers;
+  Transaction(this.db)
+      : dio = Dio(
+          BaseOptions(
+              baseUrl: '${db.host}/db/${db.database}',
+              connectTimeout: 5000,
+              receiveTimeout: 3000,
+              headers: {
+                'Accept': 'application/json; charset=UTF-8',
+                'Content-Type': 'application/json; charset=UTF-8',
+                'X-Stream': 'true',
+                'Authorization': 'Basic ${db.auth}',
+              }),
+        );
 
-  Transaction({required this.db}) {
-    _url = '${db.host}/db/${db.database}/tx';
-    _headers = {
-      'Accept': 'application/json; charset=UTF-8',
-      'Content-Type': 'application/json; charset=UTF-8',
-      'X-Stream': 'true',
-    };
-
-    _headers['authorization'] = 'Basic ${db._auth}';
-  }
-
-  /// Performs a single cypher query against the database in this transaction
-  Future<Map<String, List>> cypher({
+  Future<Result> cypher({
     required String query,
-    Map<String, dynamic>? parameters,
-    bool commit: false,
+    Parameters? parameters,
   }) =>
       cypherStatements([
-        new Statement(
-          cypher: query,
+        Statement(
+          statement: query,
           parameters: parameters,
         )
-      ], commit: commit)
-          .then((results) => results.first);
+      ]).then((results) => results.results.first);
 
-  /// Runs multiple cypher queries in this transaction
-  Future<List<dynamic>> cypherStatements(List<Statement> statements,
-      {bool commit: false}) async {
-    var body = jsonEncode({
-      'statements': statements
-          .map((statement) => statement.toJson())
-          .toList(growable: false)
-    });
+  Future<Results> cypherStatements(
+    List<Statement> statements,
+  ) async {
+    dio.interceptors.add(LogInterceptor(
+      responseBody: true,
+      requestBody: true,
+    ));
 
-    var url = commit ? '$_url/commit' : _url;
+    final response = await dio.post(
+      '/tx/commit',
+      data: Query(statements: statements).toJson(),
+    );
 
-    var response =
-        await httpClient.post(Uri.parse(url), headers: _headers, body: body);
-
-    // if (response.statusCode == 201) {
-    //   _url = response.headers['location'];
-    // }
-
-    body = utf8.decode(response.bodyBytes);
-
-    if (response.statusCode >= 400) {
-      throw 'Status Code: ${response.statusCode}, body: $body';
-    }
-
-    Map<String, dynamic> responseBody = jsonDecode(body);
-
-    if (responseBody['errors'].isNotEmpty) {
-      throw new Neo4jException(responseBody);
-    }
-    return responseBody['results'];
+    return Results.fromJson(response.data);
   }
 }

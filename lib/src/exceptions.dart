@@ -1,5 +1,3 @@
-part of neo4j_dart;
-
 class Neo4jException implements Exception {
   final Map response;
 

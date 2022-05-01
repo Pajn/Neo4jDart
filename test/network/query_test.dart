@@ -12,7 +12,7 @@ void main() {
 
     expect(json['statements'][0].statement, queryStatement);
   });
-  test('Query with parameters', () {
+  test('Convert Query to JSON', () {
     final queryStatement = 'MATCH (n) RETURN n';
     final queryParams = {'para1': 'param1value'};
     final query = Query(

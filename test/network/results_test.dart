@@ -59,7 +59,7 @@ void main() {
 }
   ''';
 
-  test('Query without parameters', () {
+  test('Convert JSON string to Results', () {
     final json = jsonDecode(sample_json_response);
     final results = Results.fromJson(json);
 
